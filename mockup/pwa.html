@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>net4sats</title>
+    <link rel="icon" type="image/png" href="https://net4sats.cash/favicon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="net4sats">
+    <link rel="apple-touch-icon" href="https://net4sats.cash/assets/icon/colour/net4sats-icon-colour.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+            padding: 24px;
+        }
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 24px;
+        }
+        .modal-box {
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 36px 28px;
+            max-width: 360px;
+            width: 100%;
+            position: relative;
+            text-align: center;
+        }
+        .close-btn {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.4);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+        .close-btn:hover { color: #fff; }
+        .icon-wrap {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 28px;
+        }
+        .icon-wrap img {
+            width: 96px;
+            height: 96px;
+            object-fit: contain;
+        }
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.55;
+            margin-bottom: 32px;
+        }
+        .steps { text-align: left; margin-bottom: 36px; }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .step-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            flex-shrink: 0;
+        }
+        .step-icon svg { display: block; }
+        .step-num {
+            width: 26px;
+            height: 26px;
+            background: #f60;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-text {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="modal" id="pwaModal">
+        <div class="modal-box">
+            <button class="close-btn" id="closeBtn" aria-label="Close">×</button>
+
+            <div class="icon-wrap">
+                <img src="https://net4sats.cash/assets/icon/white/net4sats-icon-white.png" alt="net4sats icon">
+            </div>
+
+            <h1>Add to Home Screen</h1>
+            <p>Access net4sats PWA instantly from your home screen.</p>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="step-num">1</div>
+                    <div class="step-text">Tap the share button below</div>
+                </div>
+                <div class="step">
+                    <div class="step-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </div>
+                    <div class="step-num">2</div>
+                    <div class="step-text">Scroll down and tap<br>"Add to Home Screen"</div>
+                </div>
+            </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('closeBtn').addEventListener('click', function() {
+            window.close();
+        });
+    </script>
+</body>
+</html>

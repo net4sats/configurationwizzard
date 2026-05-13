@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Portal | net4sats</title>
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <link rel="stylesheet" type="text/css" href="css/demo.css" />
+    <script>document.documentElement.className = 'js';</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            overflow: hidden;
+        }
+        canvas#scene {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: block;
+            z-index: 0;
+        }
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 8vh;
+            pointer-events: none;
+        }
+        .logo-wrap {
+            margin-bottom: 32px;
+            pointer-events: auto;
+        }
+        .content-wrap {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 10vh;
+        }
+        .logo-wrap img {
+            max-width: 320px;
+            width: 80vw;
+            height: auto;
+            display: block;
+        }
+        .cta-btn {
+            background: #f60;
+            color: #fff;
+            text-decoration: none;
+            padding: 14px 36px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            pointer-events: auto;
+            transition: background 0.2s, transform 0.15s;
+            display: inline-block;
+        }
+        .cta-btn:hover {
+            background: #ff8533;
+            transform: scale(1.03);
+        }
+        .subtitle {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+            margin-top: 16px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="scene"></canvas>
+
+    <div class="overlay">
+        <div class="logo-wrap">
+            <img src="../assets/logo/white/net4sats-logo-white.png" alt="net4sats">
+        </div>
+        <div class="content-wrap">
+            <p style="color:rgba(255,255,255,0.95);font-size:1.8rem;font-weight:700;margin-bottom:10px;text-align:center;letter-spacing:0.02em;">No contract. No ID.</p>
+            <p style="color:rgba(255,255,255,0.7);font-size:1.1rem;margin-bottom:44px;text-align:center;">Just pay for what you use.</p>
+            <a class="cta-btn" href="https://net4sats.cash/app.html">Start</a>
+        </div>
+    </div>
+
+    <script src="js/vendors/three.min.js"></script>
+    <script src="js/vendors/TweenMax.min.js"></script>
+    <script src="js/demo3.js"></script>
+</body>
+</html>

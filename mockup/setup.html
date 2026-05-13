@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>net4sats Router Setup</title>
+  <style>
+    :root {
+      --bg: #111;
+      --card: #1a1a1a;
+      --card-hover: #222;
+      --border: #2a2a2a;
+      --text: #fff;
+      --text-muted: rgba(255,255,255,0.45);
+      --text-dim: rgba(255,255,255,0.25);
+      --accent: #f60;
+      --accent-hover: #e55a00;
+      --accent-dim: rgba(255,102,0,0.15);
+      --success: #32d74b;
+      --error: #ff453a;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ---- Top Bar ---- */
+    .topbar {
+      width: 100%;
+      max-width: 520px;
+      padding: 20px 24px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar img {
+      height: 28px;
+      width: auto;
+    }
+
+    .topbar .model {
+      margin-left: auto;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+    }
+
+    /* ---- Progress ---- */
+    .progress-wrap {
+      width: 100%;
+      max-width: 520px;
+      padding: 0 24px 24px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    /* ---- Screen ---- */
+    .screen {
+      width: 100%;
+      max-width: 520px;
+      padding: 0 24px 24px;
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* ---- Form ---- */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .field:last-child { margin-bottom: 0; }
+
+    .field label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .field input[type="text"],
+    .field input[type="password"],
+    .field input[type="number"],
+    .field select {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      color: var(--text);
+      font-family: inherit;
+      width: 100%;
+      transition: border-color 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--accent);
+    }
+
+    .field input:read-only {
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    .field .hint {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .field .error {
+      font-size: 0.72rem;
+      color: var(--error);
+      display: none;
+    }
+
+    .field.has-error input { border-color: var(--error); }
+    .field.has-error .error { display: block; }
+
+    /* ---- Toggle ---- */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toggle-row:last-child { border-bottom: none; }
+
+    .toggle-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-label span {
+      font-size: 0.9rem;
+    }
+
+    .toggle-label small {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 13px;
+      cursor: pointer;
+      transition: background 0.25s;
+    }
+
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.25s;
+    }
+
+    .toggle input:checked + .slider { background: var(--accent); }
+    .toggle input:checked + .slider::before { transform: translateX(18px); }
+
+    /* ---- Connection Status ---- */
+    .conn-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .conn-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .conn-item:hover { background: var(--card-hover); }
+
+    .conn-item.active {
+      border-color: var(--success);
+      background: rgba(50,215,75,0.05);
+    }
+
+    .conn-item.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .conn-item input[type="radio"] { display: none; }
+
+    .conn-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .conn-item.active .conn-icon { background: rgba(50,215,75,0.15); }
+    .conn-item.selected .conn-icon { background: var(--accent-dim); }
+
+    .conn-info { flex: 1; min-width: 0; }
+    .conn-info .name { font-size: 0.9rem; font-weight: 600; }
+    .conn-info .meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+    .conn-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(50,215,75,0.15);
+      color: var(--success);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .conn-section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .conn-lock {
+      margin-left: auto;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .conn-item.selected .conn-lock { color: var(--accent); }
+
+    /* ---- Pricing Cards ---- */
+    .pricing-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .pricing-card {
+      padding: 16px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .pricing-card:hover { background: var(--card-hover); }
+
+    .pricing-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .pricing-card .icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .pricing-card .label { font-size: 0.85rem; font-weight: 600; }
+    .pricing-card .sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ---- Price Row ---- */
+    .price-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+    }
+
+    .price-row .unit {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .price-row input {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      width: 70px;
+      text-align: right;
+      font-family: inherit;
+    }
+
+    .price-row input:focus { color: var(--accent); }
+
+    .price-row .sats {
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ---- Custom Hour Pricing ---- */
+    .hour-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+
+    .hour-block .range { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+    .hour-block input {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      width: 100%;
+    }
+
+    .hour-block input:focus { border-color: var(--accent); }
+    .hour-block .suf { font-size: 0.7rem; color: var(--accent); font-weight: 600; text-align: right; }
+
+    /* ---- Buttons ---- */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      text-align: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-primary:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover { background: var(--card-hover); color: var(--text); }
+
+    /* ---- Success Screen ---- */
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(50,215,75,0.12);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+
+    .success-icon svg { color: var(--success); }
+
+    .summary-table {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row .key { color: var(--text-muted); }
+    .summary-row .val { font-weight: 600; }
+    .summary-row .val.accent { color: var(--accent); }
+
+    /* ---- Password Strength ---- */
+    .strength {
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      margin-top: 6px;
+      transition: background 0.3s;
+    }
+
+    .strength.weak { width: 33%; background: var(--error); }
+    .strength.medium { width: 66%; background: #ffb300; }
+    .strength.strong { width: 100%; background: var(--success); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 480px) {
+      .topbar, .progress-wrap { padding-left: 16px; padding-right: 16px; }
+      .screen { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <img src="https://net4sats.cash/assets/logo/white/net4sats-logo-white.png" alt="net4sats">
+    <span class="model">NS-WR100</span>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label">
+      <span>Step <span id="stepNum">1</span> of 4</span>
+      <span id="stepName">Password</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:25%"></div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 1: Password ========== -->
+  <div class="screen active" id="s1">
+    <div class="card">
+      <div class="card-title">Set your admin password</div>
+      <div class="card-sub">This password is only for you. You will need it to change the configuration of your net4sats router.</div>
+
+      <div class="field" id="pwField">
+        <label>Password</label>
+        <input type="password" id="pw" placeholder="Min. 8 characters" oninput="checkPw()">
+        <div class="strength" id="pwStrength"></div>
+        <span class="error">Password must be at least 8 characters</span>
+      </div>
+
+      <div class="field" id="pw2Field">
+        <label>Confirm Password</label>
+        <input type="password" id="pw2" placeholder="Repeat password" oninput="checkPw2()">
+        <span class="error">Passwords do not match</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s1next" disabled onclick="go(2)">Continue</button>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 2: Network ========== -->
+  <div class="screen" id="s2">
+    <div class="card">
+      <div class="card-title">Network Connection</div>
+      <div class="card-sub">Connect the router to the internet via cable or WiFi.</div>
+
+      <div class="conn-section-label">Cable</div>
+      <div class="conn-list" id="cableList"></div>
+
+      <div class="conn-section-label" style="margin-top:18px">WiFi (optional)</div>
+      <div class="conn-list" id="wifiList"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="go(1)">Back</button>
+      <button class="btn btn-primary" id="s2next" disabled onclick="go(3)">Continue</button>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 3: Lightning ========== -->
+  <div class="screen" id="s3">
+    <div class="card">
+      <div class="card-title">Lightning Address</div>
+      <div class="card-sub">Your router will receive payments at this LNURL address. It can be changed later.</div>
+
+      <div class="field">
+        <label>LNURL / Lightning Address</label>
+        <input type="text" id="lnurl" placeholder="you@yourwallet.com" oninput="checkLnurl()">
+        <span class="hint">e.g. yourname@walletofsatoshi.com or a custom domain</span>
+        <span class="error">Please enter a valid LNURL or Lightning address</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="go(2)">Back</button>
+      <button class="btn btn-primary" id="s3next" disabled onclick="go(4)">Continue</button>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 4: Pricing ========== -->
+  <div class="screen" id="s4">
+    <div class="card">
+      <div class="card-title">Pricing Model</div>
+      <div class="card-sub">Choose how your internet is sold. You can change this later.</div>
+
+      <div class="pricing-toggle">
+        <div class="pricing-card selected" id="type-time" onclick="selectPricing('time')">
+          <div class="icon">⏱</div>
+          <div class="label">By Time</div>
+          <div class="sub">Sell per minute</div>
+        </div>
+        <div class="pricing-card" id="type-data" onclick="selectPricing('data')">
+          <div class="icon">📊</div>
+          <div class="label">By Data</div>
+          <div class="sub">Sell per MB</div>
+        </div>
+      </div>
+
+      <div id="priceTime">
+        <div class="price-row">
+          <span class="unit">1 sat buys you</span>
+          <input type="number" id="pricePerMin" value="2" min="1" oninput="updateSummary()">
+          <span class="sats">minutes</span>
+        </div>
+        <div class="price-row">
+          <span class="unit">Minimum purchase</span>
+          <input type="number" id="minTime" value="5" min="1" oninput="updateSummary()">
+          <span class="sats">sats</span>
+        </div>
+      </div>
+
+      <div id="priceData" style="display:none">
+        <div class="price-row">
+          <span class="unit">1 sat buys you</span>
+          <input type="number" id="pricePerMb" value="5" min="1" oninput="updateSummary()">
+          <span class="sats">megabytes</span>
+        </div>
+        <div class="price-row">
+          <span class="unit">Minimum purchase</span>
+          <input type="number" id="minData" value="5" min="1" oninput="updateSummary()">
+          <span class="sats">sats</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="go(3)">Back</button>
+      <button class="btn btn-primary" onclick="go(6)">Continue</button>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN 5: Summary / Success ========== -->
+  <div class="screen" id="s6">
+    <div class="card" style="text-align:center; padding: 40px 20px;">
+      <img src="https://net4sats.cash/assets/logo/white/net4sats-logo-white.png"
+           alt="net4sats" style="height:36px;margin-bottom:24px">
+      <div id="s6Icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <div class="card-title">Configuration Summary</div>
+      <div class="card-sub">Your net4sats is almost ready. Review the information below and click CONFIRM to restart your router.</div>
+    </div>
+
+    <div style="text-align:center;padding:8px 0 4px">
+      <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase">net4sats</span>
+    </div>
+
+    <div class="summary-table" id="summaryTable"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="go(4)">Back</button>
+      <button class="btn btn-primary" onclick="saveAndReboot()">CONFIRM</button>
+    </div>
+  </div>
+
+  <script>
+    // ---- State ----
+    let currentStep = 1;
+const STEPS = ['Password', 'Network', 'Lightning', 'Pricing'];
+
+    // Step 2 mock connections
+    const connections = [
+      { id: 'eth', type: 'cable', name: 'Ethernet', meta: '1 Gbps · Connected', active: true },
+      { id: 'wifi1', type: 'wifi', name: 'HomeNetwork_5G', meta: '5 GHz · Secured', active: false },
+      { id: 'wifi2', type: 'wifi', name: 'HomeNetwork_2G', meta: '2.4 GHz · Secured', active: false },
+      { id: 'wifi3', type: 'wifi', name: 'NeighborWiFi', meta: '2.4 GHz · Secured', active: false },
+    ];
+
+    let selectedConn = 'eth';
+    let pricingType = 'time';
+    let isEthernet = true;
+
+    // ---- Navigation ----
+    function go(step) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('s' + step).classList.add('active');
+      currentStep = step;
+      updateProgress(step);
+      if (step === 6) showSummary();
+    }
+
+    function updateProgress(step) {
+      const pct = (step / 4) * 100;
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('stepNum').textContent = Math.min(step, 4);
+      document.getElementById('stepName').textContent = STEPS[Math.min(step - 1, 3)];
+      document.getElementById('progressWrap').style.display = step >= 5 ? 'none' : 'block';
+    }
+
+    // ---- Screen 1: Password ----
+    function checkPw() {
+      const pw = document.getElementById('pw').value;
+      const strength = document.getElementById('pwStrength');
+      const field = document.getElementById('pwField');
+      strength.className = 'strength';
+      field.classList.remove('has-error');
+      if (pw.length === 0) { strength.className = 'strength'; }
+      else if (pw.length < 8) { strength.className = 'strength weak'; }
+      else if (pw.length < 12) { strength.className = 'strength medium'; }
+      else { strength.className = 'strength strong'; }
+      validateS1();
+    }
+
+    function checkPw2() {
+      const pw = document.getElementById('pw2').value;
+      const field = document.getElementById('pw2Field');
+      field.classList.remove('has-error');
+      if (pw && pw !== document.getElementById('pw').value) {
+        field.classList.add('has-error');
+      }
+      validateS1();
+    }
+
+    function validateS1() {
+      const pw = document.getElementById('pw').value;
+      const pw2 = document.getElementById('pw2').value;
+      const ok = pw.length >= 8 && pw === pw2;
+      document.getElementById('s1next').disabled = !ok;
+    }
+
+// ---- Screen 2: Network ----
+    function renderConnections() {
+      const cableList = document.getElementById('cableList');
+      const wifiList = document.getElementById('wifiList');
+      cableList.innerHTML = '';
+      wifiList.innerHTML = '';
+
+      connections.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'conn-item' + (c.id === selectedConn ? ' selected' : '') + (c.active ? ' active' : '');
+        div.dataset.id = c.id;
+        div.onclick = () => selectConn(c.id);
+
+        const isCable = c.type === 'cable';
+        const iconSvg = isCable
+          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01"/><path d="M14 12h.01M18 12h.01"/></svg>`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>`;
+
+        const lockIcon = c.type === 'wifi' && !c.active
+          ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+          : '';
+
+div.innerHTML = `
+          <div class="conn-icon" style="color:${c.active ? 'var(--success)' : 'var(--text-muted)'}">${iconSvg}</div>
+          <div class="conn-info">
+            <div class="name">${c.name}</div>
+            <div class="meta">${c.meta}</div>
+          </div>
+          ${c.active ? '<span class="conn-badge">Active</span>' : ''}
+          <div class="conn-lock">${lockIcon}</div>
+        `;
+
+        if (isCable) {
+          cableList.appendChild(div);
+        } else {
+          wifiList.appendChild(div);
+          // Insert password field directly below the selected WiFi item
+          if (c.type === 'wifi' && c.id === selectedConn && !c.active) {
+            const pwWrap = document.createElement('div');
+            pwWrap.id = 'wifiPwWrap';
+            pwWrap.style.cssText = 'padding:12px 14px;background:var(--bg);border:1.5px solid var(--border);border-top:none;border-bottom-left-radius:var(--radius-sm);border-bottom-right-radius:var(--radius-sm);margin-bottom:10px';
+            pwWrap.innerHTML = `
+              <div style="font-size:0.72rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Password for ${c.name}</div>
+              <input type="password" id="wifiPw" placeholder="WiFi password" autocomplete="off"
+                     style="width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:11px 12px;font-size:0.95rem;color:var(--text);font-family:inherit;outline:none;box-sizing:border-box"
+                     oninput="validateWifiPw()">
+            `;
+            div.style.borderBottomLeftRadius = '0';
+            div.style.borderBottomRightRadius = '0';
+            div.after(pwWrap);
+          }
+        }
+      });
+
+      isEthernet = connections.find(c => c.id === selectedConn && c.type === 'cable')?.active || false;
+      document.getElementById('s2next').disabled = false;
+    }
+
+    function selectConn(id) {
+      const conn = connections.find(c => c.id === id);
+      if (!conn) return;
+      selectedConn = id;
+      renderConnections();
+
+      if (conn.type === 'wifi' && !conn.active) {
+        setTimeout(() => {
+          const pwInput = document.getElementById('wifiPw');
+          if (pwInput) pwInput.focus();
+        }, 60);
+        document.getElementById('s2next').disabled = true;
+      } else {
+        document.getElementById('s2next').disabled = false;
+      }
+    }
+
+    function validateWifiPw() {
+      const val = document.getElementById('wifiPw')?.value;
+      document.getElementById('s2next').disabled = !val;
+    }
+
+    // ---- Screen 3: Lightning ----
+    function checkLnurl() {
+      const val = document.getElementById('lnurl').value.trim();
+      const field = document.getElementById('lnurl').parentElement;
+      const isValid = val.includes('@') || val.startsWith('lnurl');
+      if (val && !isValid) {
+        field.classList.add('has-error');
+      } else {
+        field.classList.remove('has-error');
+      }
+      document.getElementById('s3next').disabled = !isValid;
+    }
+
+    // ---- Screen 4: Pricing ----
+    function selectPricing(type) {
+      pricingType = type;
+      document.getElementById('type-time').classList.toggle('selected', type === 'time');
+      document.getElementById('type-data').classList.toggle('selected', type === 'data');
+      document.getElementById('priceTime').style.display = type === 'time' ? 'block' : 'none';
+      document.getElementById('priceData').style.display = type === 'data' ? 'block' : 'none';
+      const suf = type === 'time' ? 'sats/min' : 'sats/MB';
+      for (let i = 1; i <= 6; i++) {
+        document.getElementById('h' + i + 'suf').textContent = suf;
+      }
+    }
+
+    function updateSummary() {
+      // Summary is built in showSummary
+    }
+
+    // ---- Screen 6: Summary ----
+    function showSummary() {
+      const conn = connections.find(c => c.id === selectedConn);
+      const pricePerMin = document.getElementById('pricePerMin').value;
+      const pricePerMb = document.getElementById('pricePerMb').value;
+      const lnurl = document.getElementById('lnurl').value.trim();
+
+      const minTime = document.getElementById('minTime').value;
+      const minData = document.getElementById('minData').value;
+
+      const rows = [
+        { key: 'SSID', val: 'net4sats' },
+        { key: 'Password', val: '••••••••' },
+        { key: 'Connection', val: conn?.name || '–' },
+        { key: 'Lightning', val: lnurl || 'Not set' },
+        { key: 'Mode', val: pricingType === 'time'
+          ? `1 sat = ${pricePerMin} min · min ${minTime} sats`
+          : `1 sat = ${pricePerMb} MB · min ${minData} sats` },
+      ];
+
+      document.getElementById('summaryTable').innerHTML = rows.map(r => `
+        <div class="summary-row">
+          <span class="key">${r.key}</span>
+          <span class="val ${r.key === 'Mode' ? 'accent' : ''}">${r.val}</span>
+        </div>
+      `).join('');
+
+      go(6);
+    }
+
+    // ---- Save & Reboot ----
+    function saveAndReboot() {
+      document.getElementById('s6Icon').innerHTML = `
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      `;
+      document.querySelector('#s6 .card-title').textContent = 'Setup Complete!';
+      document.querySelector('#s6 .card-sub').textContent = 'Your net4sats WiFi is now restarting and will be visible in a moment! Happy stacking!';
+      document.querySelector('#s6 .btn-row').style.display = 'none';
+      return;
+      const btn = document.querySelector('#s6 .btn-primary');
+      btn.textContent = 'Saving…';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.textContent = 'Rebooting…';
+        setTimeout(() => {
+          btn.textContent = 'Done!';
+          btn.style.background = 'var(--success)';
+        }, 2000);
+      }, 1500);
+    }
+
+    // ---- Init ----
+    function init() {
+      renderConnections();
+    }
+    init();
+  </script>
+</body>
+</html>

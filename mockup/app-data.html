@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>net4sats</title>
+  <link rel="icon" type="image/png" href="https://net4sats.cash/favicon.png">
+  <link rel="apple-touch-icon" href="https://net4sats.cash/assets/icon/colour/net4sats-icon-colour.png">
+  <style>
+    :root {
+      --color: #fff;
+      --color-black: #111;
+      --color-white: #fff;
+      --color-white-transparent: rgba(255,255,255,0.9);
+      --color-gray-darken: rgba(0,0,0,0.4);
+      --color-cta: #f60;
+      --color-cta-hover: #e55a00;
+      --color-negative: rgba(255,255,255,0.35);
+      --color-green: #32d74b;
+      --color-green-transparent: rgba(50,215,75,0.15);
+      --color-red: #ff3b30;
+      --color-red-transparent: rgba(255,59,48,0.15);
+      --border-radius: 12px;
+      --border-radius-large: 20px;
+      --border-radius-small: 8px;
+      --font-size: 0.9rem;
+      --font-size-small: 0.8rem;
+      --font-size-xsmall: 0.72rem;
+      --font-size-large: 1.4rem;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #111;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--color);
+      overflow-x: hidden;
+    }
+
+    /* ---- Particle Background ---- */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ---- Layout ---- */
+    .tollgate-captive-portal {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0 1.5rem;
+      justify-content: center;
+    }
+
+    /* ---- Header / Logo ---- */
+    .tollgate-captive-portal-header {
+      padding: clamp(2rem, 4.8vw + .08rem, 5rem) 0 clamp(1.5rem, 3vw + .05rem, 3rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tollgate-captive-portal-header img {
+      width: clamp(10rem, 30vw, 16rem);
+      max-width: 100%;
+    }
+
+    .tollgate-captive-portal-header .powered-by {
+      font-size: var(--font-size-small);
+      color: var(--color-negative);
+    }
+
+    /* ---- Content Container ---- */
+    .tollgate-captive-portal-content {
+      display: flex;
+      justify-content: center;
+    }
+
+    .tollgate-captive-portal-content-container {
+      width: 500px;
+      max-width: 100%;
+    }
+
+    /* ---- Tabs ---- */
+    .tollgate-captive-portal-tabs {
+      display: flex;
+    }
+
+    .tollgate-captive-portal-tabs-tab {
+      flex: 1;
+      padding: 1rem;
+      text-align: center;
+      border: none;
+      font-weight: 600;
+      font-size: var(--font-size);
+      cursor: pointer;
+      transition: opacity 0.15s;
+      font-family: inherit;
+    }
+
+    .tollgate-captive-portal-tabs-tab-cashu {
+      background: #fff;
+      border-top-right-radius: var(--border-radius-large);
+    }
+
+    .tollgate-captive-portal-tabs-tab-lightning {
+      background: #fff;
+      border-top-left-radius: var(--border-radius-large);
+    }
+
+    .tollgate-captive-portal-tabs-tab[data-active="false"] {
+      opacity: 0.7;
+    }
+
+    .tollgate-captive-portal-tabs-tab[data-active="false"]:hover {
+      opacity: 0.85;
+    }
+
+    /* ---- View ---- */
+    .tollgate-captive-portal-view {
+      padding: 1.2rem 1rem;
+      background: #fff;
+      border-bottom-left-radius: var(--border-radius-large);
+      border-bottom-right-radius: var(--border-radius-large);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* ---- Method Header ---- */
+    .tollgate-captive-portal-method-header {
+      text-align: center;
+      padding: 0.5rem 0 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .tollgate-captive-portal-method-header h1 {
+      font-size: var(--font-size-large);
+      color: #0a0a0a;
+    }
+
+    .tollgate-captive-portal-method-header h2 {
+      font-size: var(--font-size);
+      font-weight: 400;
+      color: rgba(0,0,0,0.5);
+    }
+
+    .tollgate-captive-portal-method-header h2 a {
+      color: var(--color-cta);
+      text-decoration: none;
+    }
+
+    /* ---- Input Row ---- */
+    .tollgate-captive-portal-method-input {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: #fff;
+      border-radius: var(--border-radius);
+      border: 1px solid rgba(0,0,0,0.1);
+      padding: 0.6rem;
+    }
+
+    .tollgate-captive-portal-method-input input {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: var(--font-size);
+      color: #0a0a0a;
+      font-family: inherit;
+      background: transparent;
+    }
+
+    .tollgate-captive-portal-method-input input::placeholder {
+      color: rgba(0,0,0,0.3);
+    }
+
+    .tollgate-captive-portal-method-input-actions {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+
+    .tollgate-captive-portal-method-input-actions button {
+      padding: 0.3rem 0.8rem;
+      border-radius: var(--border-radius-small);
+      border: 1px solid rgba(0,0,0,0.15);
+      background: transparent;
+      font-size: var(--font-size-xsmall);
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+
+    .tollgate-captive-portal-method-input-actions button.ghost {
+      background: rgba(0,0,0,0.06);
+    }
+
+    .tollgate-captive-portal-method-input-actions button.ghost:hover {
+      background: rgba(0,0,0,0.1);
+    }
+
+    .tollgate-captive-portal-method-input-actions button.cancel {
+      color: var(--color-red);
+      border-color: rgba(255,59,48,0.3);
+    }
+
+    /* ---- Success / Error ---- */
+    .success-msg, .error-msg {
+      padding: 0.6rem 0.8rem;
+      border-radius: var(--border-radius);
+      font-size: var(--font-size-small);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .success-msg {
+      background: var(--color-green-transparent);
+      color: #1a7a30;
+    }
+
+    .error-msg {
+      background: var(--color-red-transparent);
+      color: var(--color-red);
+    }
+
+    .success-msg .dot, .error-msg .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .success-msg .dot { background: var(--color-green); }
+    .error-msg .dot { background: var(--color-red); }
+
+    /* ---- Access Options ---- */
+    .tollgate-captive-portal-method-options {
+      background: #fff;
+      border-radius: var(--border-radius);
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .tollgate-captive-portal-method-options h5 {
+      font-size: var(--font-size-small);
+      font-weight: 600;
+      color: rgba(0,0,0,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+
+    .mint-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem;
+      border-radius: var(--border-radius-small);
+      border: 1.5px solid rgba(0,0,0,0.08);
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+      gap: 0.4rem;
+    }
+
+    .mint-btn:hover {
+      border-color: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.02);
+    }
+
+    .mint-btn.active {
+      border-color: var(--color-cta);
+      background: rgba(255,102,0,0.05);
+    }
+
+    .mint-btn .mint-price {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: var(--font-size);
+      font-weight: 600;
+      color: #0a0a0a;
+    }
+
+    .mint-btn .mint-price .radio {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+
+    .mint-btn.active .mint-price .radio {
+      border-color: var(--color-cta);
+      background: var(--color-cta);
+    }
+
+    .mint-btn .mint-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.3rem;
+      justify-content: flex-end;
+    }
+
+    .mint-btn .mint-meta span {
+      background: rgba(0,0,0,0.07);
+      padding: 0 0.5rem;
+      border-radius: 4px;
+      font-size: var(--font-size-xsmall);
+      color: rgba(0,0,0,0.6);
+    }
+
+    /* ---- Submit ---- */
+    .tollgate-captive-portal-method-submit {
+      display: flex;
+      justify-content: center;
+    }
+
+    .tollgate-captive-portal-method-submit button,
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.8rem 2rem;
+      border-radius: var(--border-radius);
+      border: none;
+      font-size: var(--font-size);
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.1s;
+      text-decoration: none;
+    }
+
+    .tollgate-captive-portal-method-submit button:not(:disabled) {
+      background: var(--color-cta);
+      color: #fff;
+    }
+
+    .tollgate-captive-portal-method-submit button:not(:disabled):hover {
+      background: var(--color-cta-hover);
+      transform: scale(1.02);
+    }
+
+    .tollgate-captive-portal-method-submit button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ---- Method Footer ---- */
+    .tollgate-captive-portal-method-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--font-size-xsmall);
+      color: rgba(0,0,0,0.35);
+      margin-top: 0.2rem;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    /* ---- Loading ---- */
+    .tollgate-captive-portal-loading {
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: #0a0a0a;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(0,0,0,0.1);
+      border-top-color: var(--color-cta);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .spinner.big {
+      width: 40px;
+      height: 40px;
+      border-width: 4px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Access Granted ---- */
+    .tollgate-captive-portal-access-granted {
+      padding: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      text-align: center;
+      color: #0a0a0a;
+    }
+
+    .tollgate-captive-portal-access-granted-checkmark {
+      width: 64px;
+      height: 64px;
+      background: var(--color-green-transparent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tollgate-captive-portal-access-granted-checkmark svg {
+      width: 36px;
+      height: 36px;
+      color: var(--color-green);
+    }
+
+    .tollgate-captive-portal-access-granted-label h2 {
+      font-size: var(--font-size-large);
+      color: #0a0a0a;
+    }
+
+    .tollgate-captive-portal-access-granted-label p {
+      font-size: var(--font-size-small);
+      color: rgba(0,0,0,0.5);
+    }
+
+    .tollgate-captive-portal-access-granted-label p.small {
+      font-size: var(--font-size-xsmall);
+      opacity: 0.6;
+    }
+
+    /* ---- Footer ---- */
+    .tollgate-captive-portal-footer {
+      padding: clamp(1.5rem, 3vw + .5rem, 3.5rem) 0 clamp(1rem, 2vw + .3rem, 2rem);
+      text-align: center;
+      font-size: var(--font-size-small);
+      color: var(--color-negative);
+    }
+
+    .tollgate-captive-portal-footer a {
+      color: var(--color-negative);
+      text-decoration: underline;
+    }
+
+    /* ---- PWA Modal ---- */
+    .pwa-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 24px;
+    }
+
+    .pwa-modal-box {
+      background: #1a1a1a;
+      border-radius: var(--border-radius-large);
+      padding: 36px 28px;
+      max-width: 360px;
+      width: 100%;
+      position: relative;
+      text-align: center;
+    }
+
+    .pwa-modal-box .close-btn {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .pwa-modal-box .close-btn:hover { color: #fff; }
+
+    .pwa-modal-box .icon-wrap {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 28px;
+    }
+
+    .pwa-modal-box .icon-wrap img {
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+    }
+
+    .pwa-modal-box h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 10px;
+    }
+
+    .pwa-modal-box p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.55;
+      margin-bottom: 32px;
+    }
+
+    .pwa-modal-box .steps { text-align: left; margin-bottom: 36px; }
+
+    .pwa-modal-box .step {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .pwa-modal-box .step-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      flex-shrink: 0;
+    }
+
+    .pwa-modal-box .step-icon svg { display: block; }
+
+    .pwa-modal-box .step-num {
+      width: 26px;
+      height: 26px;
+      background: var(--color-cta);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      color: #fff;
+    }
+
+    .pwa-modal-box .step-text {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Animated particle background -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- PWA Modal (shown on first visit) -->
+  <div class="pwa-modal" id="pwaModal">
+    <div class="pwa-modal-box">
+      <button class="close-btn" id="closePwaBtn">×</button>
+      <div class="icon-wrap">
+        <img src="https://net4sats.cash/assets/icon/white/net4sats-icon-white.png" alt="net4sats">
+      </div>
+      <h1>Add to Home Screen</h1>
+      <p>Access net4sats PWA instantly from your home screen.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="step-num">1</div>
+          <div class="step-text">Tap the share button below</div>
+        </div>
+        <div class="step">
+          <div class="step-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </div>
+          <div class="step-num">2</div>
+          <div class="step-text">Scroll down and tap<br>"Add to Home Screen"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main captive portal UI -->
+  <div class="tollgate-captive-portal">
+
+    <!-- Header: logo + powered by -->
+    <div class="tollgate-captive-portal-header">
+      <img src="https://net4sats.cash/assets/logo/colour/net4sats-logo-colour.png" alt="net4sats">
+      <p class="powered-by">Powered by <a href="https://tollgate.me/" target="_blank" rel="noreferrer" style="color:#fff;text-decoration:none">TollGate</a></p>
+    </div>
+
+    <div style="text-align:center;padding:1rem 1rem;display:flex;flex-direction:column;align-items:center;gap:0.3rem">
+      <p style="font-size:1.2rem;color:#fff;font-weight:700">How much Internet would you like to buy?</p>
+    </div>
+    <p style="text-align:center;margin:0 0 0.4rem;font-size:0.75rem;color:rgba(255,255,255,0.4);font-family:inherit">Minimum purchase: 100 MB</p>
+    <div style="display:flex;gap:0.75rem;justify-content:center;margin:0.75rem 0 1.25rem" id="size-choices">
+      <button class="size-btn active" onclick="selectSize(100, this)" style="padding:0.65rem 1.4rem;border-radius:10px;border:1.5px solid #f60;background:#f60;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">100 MB</button>
+      <button class="size-btn" onclick="selectSize(1000, this)" style="padding:0.65rem 1.4rem;border-radius:10px;border:1.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit">1 GB</button>
+      <button class="size-btn" onclick="selectSize(10000, this)" style="padding:0.65rem 1.4rem;border-radius:10px;border:1.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit">10 GB</button>
+      <button class="size-btn" onclick="selectSize(0, this)" style="padding:0.65rem 1.4rem;border-radius:10px;border:1.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit">More</button>
+    </div>
+    <div id="more-input-wrap" style="display:none;margin:1rem 1.5rem 1.25rem;text-align:center">
+      <div style="display:flex;align-items:center;justify-content:center;gap:0">
+        <input type="number" id="more-gb-input" min="0" placeholder="50" oninput="selectSize(this.value*1000, document.querySelector('.size-btn:last-child'))" style="width:160px;padding:0.65rem 1rem;font-size:1rem;border-radius:10px 0 0 10px;border:1.5px solid #f60;border-right:none;background:#f60;color:#fff;text-align:center;font-family:inherit;outline:none;box-sizing:border-box">
+        <span style="padding:0.65rem 1rem;font-size:1rem;border-radius:0 10px 10px 0;border:1.5px solid #f60;border-left:none;background:#f60;color:#fff;font-weight:700;font-family:inherit;white-space:nowrap">GB</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="tollgate-captive-portal-content">
+      <div class="tollgate-captive-portal-content-container">
+
+        <!-- Tabs -->
+        <div class="tollgate-captive-portal-tabs" role="tablist">
+          <button class="tollgate-captive-portal-tabs-tab tollgate-captive-portal-tabs-tab-lightning"
+                  data-active="true" id="tab-lightning" role="tab" onclick="switchTab('lightning')">⚡ Lightning</button>
+          <button class="tollgate-captive-portal-tabs-tab tollgate-captive-portal-tabs-tab-cashu"
+                  data-active="false" id="tab-cashu" role="tab" onclick="switchTab('cashu')">🥜 Cashu</button>
+        </div>
+
+        <!-- View -->
+        <div class="tollgate-captive-portal-view">
+
+          <!-- Loading -->
+          <div class="tollgate-captive-portal-loading" id="loadingState">
+            <div class="spinner big"></div>
+            <span>Loading…</span>
+          </div>
+
+          <!-- Cashu Panel -->
+          <div id="cashu-panel" style="display:none">
+            <div class="tollgate-captive-portal-method-header">
+              <h2>Pay with <a href="https://cashu.space/" target="_blank" rel="noreferrer">Cashu</a> to access the internet.</h2>
+            </div>
+
+            <div class="tollgate-captive-portal-method-input" style="text-align:center;padding:1.2rem;border:none">
+              <div id="cashu-amount-display" style="font-size:2rem;font-weight:700;color:#0a0a0a">100 sats</div>
+            </div>
+
+            <div class="success-msg" id="cashu-success" style="display:none">
+              <div class="dot"></div>
+              <span id="cashu-success-text">Valid Cashu token — you will receive internet access.</span>
+            </div>
+
+            <div class="error-msg" id="cashu-error" style="display:none">
+              <div class="dot"></div>
+              <span id="cashu-error-text"></span>
+            </div>
+
+            <div class="tollgate-captive-portal-method-input">
+              <input type="text" id="cashu-token" placeholder="cashuxyz…" autocomplete="off">
+              <div class="tollgate-captive-portal-method-input-actions">
+                <button class="cancel" id="clearTokenBtn" style="display:none">✕</button>
+                <button class="ghost" id="pasteBtn">Paste</button>
+                <button class="ghost" id="scanBtn">QR</button>
+              </div>
+            </div>
+
+            <div class="tollgate-captive-portal-method-submit" style="margin-top:1.5rem">
+              <button id="payBtn" disabled>Continue</button>
+            </div>
+
+          </div>
+
+          <!-- Lightning Panel -->
+          <div id="lightning-panel" style="display:none">
+            <div class="tollgate-captive-portal-method-header">
+              <h2>Pay with <a href="https://bitcoin.org/" target="_blank" rel="noreferrer">BTC Lightning</a> to access the internet.</h2>
+            </div>
+
+            <div class="tollgate-captive-portal-method-input" style="text-align:center;padding:1.2rem;border:none">
+              <div id="ln-amount-display" style="font-size:2rem;font-weight:700;color:#0a0a0a">100 sats</div>
+            </div>
+
+            <div id="ln-invoice-qr" style="display:none;text-align:center;padding:1rem;background:#fff;border-radius:var(--border-radius)">
+              <div id="ln-qr-placeholder" style="width:180px;height:180px;background:#f5f5f5;margin:0 auto 0.8rem;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:rgba(0,0,0,0.3)">QR code</div>
+              <div style="font-size:var(--font-size-small);color:rgba(0,0,0,0.4);word-break:break-all" id="ln-invoice-preview"></div>
+            </div>
+
+            <div class="error-msg" id="ln-error" style="display:none">
+              <div class="dot"></div>
+              <span id="ln-error-text"></span>
+            </div>
+
+            <div class="tollgate-captive-portal-method-submit">
+              <button id="ln-genBtn">Generate Invoice</button>
+            </div>
+
+          </div>
+
+          <!-- Access Granted (shown after payment) -->
+          <div class="tollgate-captive-portal-access-granted" id="access-granted" style="display:none">
+            <div class="tollgate-captive-portal-access-granted-checkmark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="tollgate-captive-portal-access-granted-label">
+              <h2>Payment successful!</h2>
+              <p>You now have <strong id="granted-amount">100 min</strong> of internet access.</p>
+              <p class="small">Redirecting to your balance page…</p>
+            </div>
+          </div>
+
+        </div><!-- /.view -->
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="tollgate-captive-portal-footer">
+      <p><span id="footer-device">Device: AA:BB:CC:DD:EE:FF</span> &nbsp;·&nbsp; net4sats v1.0</p>
+    </div>
+
+  </div>
+
+  <script>
+    // ---- Particle Background ----
+    (function() {
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      class Particle {
+        constructor() { this.reset(); }
+        reset() {
+          const cx = canvas.width / 2, cy = canvas.height / 2;
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          const dx = this.x - cx, dy = this.y - cy;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const maxDist = Math.sqrt(cx*cx + cy*cy);
+          const eased = Math.pow(dist / maxDist, 2);
+          this.size = (Math.random() * 2.25 + 1) * (1 + eased);
+          this.speedX = (Math.random() - 0.5) / 1.4;
+          this.speedY = (Math.random() - 0.5) / 1.4;
+          this.color = `rgba(255,255,255,${Math.random() * 0.5 + 0.1})`;
+        }
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          if (this.x < 0) this.x = canvas.width;
+          if (this.x > canvas.width) this.x = 0;
+          if (this.y < 0) this.y = canvas.height;
+          if (this.y > canvas.height) this.y = 0;
+        }
+        draw() {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function initParticles() {
+        particles = [];
+        const count = (canvas.width + canvas.height) / 16;
+        for (let i = 0; i < count; i++) particles.push(new Particle());
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        // draw connecting lines
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.strokeStyle = `rgba(255,255,255,${0.2 - dist/500})`;
+              ctx.lineWidth = 0.5;
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+
+      resize();
+      initParticles();
+      animate();
+      window.addEventListener('resize', () => { resize(); initParticles(); });
+    })();
+
+    // ---- Tab Switching ----
+    let activeTab = 'lightning';
+    let selectedMintSat = 100;
+    let selectedMintUnit = 'min';
+    let lnSelectedSat = 100;
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tollgate-captive-portal-tabs-tab').forEach(b => {
+        b.setAttribute('data-active', b.id === 'tab-' + tab ? 'true' : 'false');
+      });
+      document.getElementById('cashu-panel').style.display = tab === 'cashu' ? 'block' : 'none';
+      document.getElementById('lightning-panel').style.display = tab === 'lightning' ? 'block' : 'none';
+    }
+
+    // ---- Cashu ----
+    const tokenInput = document.getElementById('cashu-token');
+    const clearBtn = document.getElementById('clearTokenBtn');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const successMsg = document.getElementById('cashu-success');
+    const errorMsg = document.getElementById('cashu-error');
+    const payBtn = document.getElementById('payBtn');
+
+    tokenInput.addEventListener('input', function() {
+      const val = this.value.trim();
+      clearBtn.style.display = val ? 'inline-flex' : 'none';
+      pasteBtn.style.display = val ? 'none' : 'inline-flex';
+      successMsg.style.display = 'none';
+      errorMsg.style.display = 'none';
+      payBtn.disabled = !val;
+      if (val && !val.startsWith('cashu')) {
+        showCashuError('Cashu tokens should start with "cashu"');
+        payBtn.disabled = true;
+      }
+    });
+
+    clearBtn.addEventListener('click', function() {
+      tokenInput.value = '';
+      clearBtn.style.display = 'none';
+      pasteBtn.style.display = 'inline-flex';
+      successMsg.style.display = 'none';
+      errorMsg.style.display = 'none';
+      payBtn.disabled = true;
+    });
+
+    pasteBtn.addEventListener('click', async function() {
+      try {
+        const text = await navigator.clipboard.readText();
+        tokenInput.value = text;
+        tokenInput.dispatchEvent(new Event('input'));
+      } catch(e) {
+        showCashuError('Clipboard access denied. Please paste manually.');
+      }
+    });
+
+    payBtn.addEventListener('click', function() {
+      // Mock payment success
+      document.getElementById('cashu-panel').style.display = 'none';
+      document.getElementById('lightning-panel').style.display = 'none';
+      document.getElementById('access-granted').style.display = 'flex';
+      document.getElementById('granted-amount').textContent = selectedMintSat + ' sats';
+    });
+
+    function selectMint(el, sat, unit) {
+      document.querySelectorAll('.mint-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      selectedMintSat = sat;
+      selectedMintUnit = unit;
+    }
+
+    function showCashuError(msg) {
+      errorMsg.querySelector('span').textContent = msg;
+      errorMsg.style.display = 'flex';
+    }
+
+    // ---- Lightning ----
+    const lnGenBtn = document.getElementById('ln-genBtn');
+    const lnInvoiceQr = document.getElementById('ln-invoice-qr');
+    const lnInvoicePreview = document.getElementById('ln-invoice-preview');
+    const lnError = document.getElementById('ln-error');
+    const lnAmountDisplay = document.getElementById('ln-amount-display');
+    const cashuAmountDisplay = document.getElementById('cashu-amount-display');
+
+    function selectLnAmount(sat) {
+      var target = event && event.target ? event.target.closest('.mint-btn') : null;
+      if (target) {
+        document.querySelectorAll('#lightning-panel .mint-btn').forEach(function(b) { b.classList.remove('active'); });
+        target.classList.add('active');
+      }
+      lnSelectedSat = sat;
+      document.getElementById('ln-amount-display').textContent = sat.toLocaleString() + ' sats';
+    }
+
+    lnGenBtn.addEventListener('click', function() {
+      // Generate a mock Bolt 11 invoice
+      lnGenBtn.textContent = 'Generating…';
+      lnGenBtn.disabled = true;
+      setTimeout(() => {
+        const mockInvoice = 'lnbc' + Math.random().toString(36).substring(2, 20) + '...';
+        lnInvoicePreview.textContent = mockInvoice;
+        lnInvoiceQr.style.display = 'block';
+        lnGenBtn.textContent = 'Invoice Generated ✓';
+        lnGenBtn.style.background = '#32d74b';
+        lnGenBtn.style.color = '#fff';
+        // After 3s simulate payment success
+        setTimeout(() => {
+          document.getElementById('cashu-panel').style.display = 'none';
+          document.getElementById('lightning-panel').style.display = 'none';
+          document.getElementById('access-granted').style.display = 'flex';
+          document.getElementById('granted-amount').textContent = lnSelectedSat + ' sats';
+        }, 3000);
+      }, 1200);
+    });
+
+    // ---- PWA Modal ----
+    const pwaModal = document.getElementById('pwaModal');
+    const closePwaBtn = document.getElementById('closePwaBtn');
+
+    // Show PWA modal on first visit (sessionStorage flag)
+    if (!sessionStorage.getItem('pwa-seen')) {
+      pwaModal.style.display = 'flex';
+      sessionStorage.setItem('pwa-seen', '1');
+    } else {
+      pwaModal.style.display = 'none';
+    }
+
+    closePwaBtn.addEventListener('click', function() {
+      pwaModal.style.display = 'none';
+    });
+
+    // Hide loading after a short delay (mock)
+    setTimeout(() => {
+      document.getElementById('loadingState').style.display = 'none';
+      switchTab('lightning');
+      // Sync both amount displays to default 100 MB selection
+      selectSize(100, document.querySelector('.size-btn'));
+    }, 600);
+  
+    function selectSize(val, btn) {
+      document.querySelectorAll('.size-btn').forEach(function(b) {
+        b.style.borderColor = 'rgba(255,255,255,0.25)';
+        b.style.background = 'rgba(255,255,255,0.08)';
+        b.style.color = 'rgba(255,255,255,0.7)';
+        b.classList.remove('active');
+      });
+      btn.style.borderColor = '#f60';
+      btn.style.background = '#f60';
+      btn.style.color = '#fff';
+      btn.classList.add('active');
+
+      var moreWrap = document.getElementById('more-input-wrap');
+      if (btn && btn === document.querySelector('.size-btn:last-child')) {
+        moreWrap.style.display = 'block';
+        document.getElementById('more-gb-input').focus();
+      } else {
+        moreWrap.style.display = 'none';
+      }
+
+      // Sync Lightning panel
+      selectLnAmount(val);
+      // Sync Cashu panel
+      if (cashuAmountDisplay) cashuAmountDisplay.textContent = val.toLocaleString() + ' sats';
+    }
+</script>
+</body>
+</html>
