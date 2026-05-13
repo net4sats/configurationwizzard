@@ -1,0 +1,31 @@
+{
+  "name": "configurationwizzard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/net4sats/configurationwizzard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/net4sats/configurationwizzard/issues"
+  },
+  "homepage": "https://github.com/net4sats/configurationwizzard#readme",
+  "dependencies": {
+    "@prefresh/vite": "^3.0.1",
+    "preact": "^10.29.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.12"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.5"
+  }
+}

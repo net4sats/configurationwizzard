@@ -1,0 +1,24 @@
+:root {
+  --bg: #111;
+  --card: #1a1a1a;
+  --card-hover: #222;
+  --border: #2a2a2a;
+  --text: #fff;
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --accent: #f60;
+  --accent-hover: #e55a00;
+  --accent-dim: rgba(255, 102, 0, 0.15);
+  --success: #32d74b;
+  --error: #ff453a;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font-size: 0.9rem;
+  --font-size-small: 0.8rem;
+  --font-size-xsmall: 0.72rem;
+  --font-size-large: 1.4rem;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --header-h: 54px;
+  --nav-h: 64px;
+  --content-max: 520px;
+}

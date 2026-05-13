@@ -1,0 +1,15 @@
+{
+  "tollgate": {
+    "description": "Tollgate net4sats management",
+    "read": {
+      "ubus": {
+        "tollgate": ["status", "pricing", "wallet_balance", "sessions"]
+      }
+    },
+    "write": {
+      "ubus": {
+        "tollgate": ["activate", "configure", "wallet_drain"]
+      }
+    }
+  }
+}
