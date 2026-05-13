@@ -1,18 +1,16 @@
 import { defineConfig } from 'vite'
 import preact from '@preact/preset-vite'
-import refresh from '@prefresh/vite'
 
 export default defineConfig({
   plugins: [
     preact(),
-    refresh({
-      dev: true,
-      reload: true,
-    }),
   ],
   build: {
     outDir: 'dist',
     sourcemap: true,
+  },
+  optimizeDeps: {
+    include: ['zimmerframe'],
   },
   server: {
     proxy: {

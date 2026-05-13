@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node -e \"const p=require('path').join(process.cwd(),'node_modules/zimmerframe/package.json');const d=require('fs').readFileSync(p,'utf8');const j=JSON.parse(d);j.main='./src/walk.js';j.exports['.'].require='./src/walk.js';require('fs').writeFileSync(p,JSON.stringify(j,null,2))\""
   },
   "repository": {
     "type": "git",
@@ -20,7 +21,6 @@
   },
   "homepage": "https://github.com/net4sats/configurationwizzard#readme",
   "dependencies": {
-    "@prefresh/vite": "^3.0.1",
     "preact": "^10.29.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.12"
