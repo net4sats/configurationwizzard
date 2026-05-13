@@ -40,7 +40,7 @@ function InfoCard({
   );
 }
 
-function StatRow({ label, value }: { label: string; value: string }) {
+function StatRow({ label, value }: { label: string; value: any }) {
   return (
     <div className="stat-row">
       <span className="stat-label">{label}</span>

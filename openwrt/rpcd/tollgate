@@ -60,7 +60,7 @@ case "$1" in
         [ -n "$MIN_PURCHASE" ] && uci set tollgate.pricing.min="$MIN_PURCHASE"
         [ -n "$LNURL" ] && uci set tollgate.lightning.lnurl="$LNURL"
         [ -n "$HOSTNAME" ] && { uci set system.@system[0].hostname="$HOSTNAME"; /etc/init.d/system reload; }
-        [ -n "$PASSWORD" ] && { echo -e "$PASSWORD\n$PASSWORD" | passwd root; }
+        [ -n "$PASSWORD" ] && printf '%s' "$PASSWORD" | passwd root >/dev/null 2>&1
         
         uci commit tollgate 2>/dev/null
         /etc/init.d/tollgate-basic restart 2>/dev/null

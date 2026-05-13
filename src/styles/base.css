@@ -434,3 +434,98 @@ button {
 .animate-in-delay-4 {
   animation: fadeIn 0.3s ease 0.2s both;
 }
+
+/* ─── App Layout ────────────────────────────────────── */
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-h);
+  background: rgba(17, 17, 17, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  z-index: 100;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.header-user {
+  font-size: var(--font-size-xsmall);
+  color: var(--text-dim);
+  border-left: 1px solid var(--border);
+  padding-left: 0.7rem;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-size: var(--font-size-xsmall);
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+}
+
+.btn-logout:hover {
+  color: var(--error);
+  background: rgba(255, 69, 58, 0.1);
+}
+
+.app-content {
+  position: relative;
+  z-index: 1;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: calc(var(--header-h) + 1rem) 1rem calc(var(--nav-h) + 1.2rem);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-h);
+  background: rgba(17, 17, 17, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 0.25rem;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: var(--font-size-xsmall);
+  font-weight: 400;
+  transition: color 0.15s;
+  min-width: 52px;
+}
+
+.nav-item-active {
+  color: var(--accent);
+  font-weight: 600;
+}

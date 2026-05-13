@@ -9,7 +9,7 @@ interface Particle {
 }
 
 const PARTICLE_COUNT = 50;
-const MAX_DIST = 120;
+const MAX_DIST_SQ = 14400; // 120²
 const SPEED = 0.25;
 
 export default function ParticleBg() {
@@ -68,9 +68,9 @@ export default function ParticleBg() {
           const q = particles[j];
           const dx = p.x - q.x;
           const dy = p.y - q.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < MAX_DIST) {
-            const alpha = (1 - dist / MAX_DIST) * 0.12;
+          const distSq = dx * dx + dy * dy;
+          if (distSq < MAX_DIST_SQ) {
+            const alpha = (1 - Math.sqrt(distSq) / 120) * 0.12;
             ctx!.beginPath();
             ctx!.moveTo(p.x, p.y);
             ctx!.lineTo(q.x, q.y);

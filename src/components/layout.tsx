@@ -114,121 +114,34 @@ export default function Layout() {
       <ParticleBg />
 
       {/* Header */}
-      <header
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 'var(--header-h)',
-          background: 'rgba(17,17,17,0.92)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 1rem',
-          zIndex: 100,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+      <header className="app-header">
+        <div className="header-brand">
           <img
             src="/net4sats/assets/logo/colour/net4sats-logo-colour.svg"
             alt="net4sats"
             style={{ height: '26px' }}
           />
-          <span
-            style={{
-              fontSize: 'var(--font-size-xsmall)',
-              color: 'var(--text-dim)',
-              borderLeft: '1px solid var(--border)',
-              paddingLeft: '0.7rem',
-            }}
-          >
-            {user}
-          </span>
+          <span className="header-user">{user}</span>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            color: 'var(--text-muted)',
-            fontSize: 'var(--font-size-xsmall)',
-            padding: '0.35rem 0.5rem',
-            borderRadius: 'var(--radius-sm)',
-            transition: 'color 0.15s, background 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.color = 'var(--error)';
-            (e.target as HTMLElement).style.background = 'rgba(255,69,58,0.1)';
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.color = 'var(--text-muted)';
-            (e.target as HTMLElement).style.background = 'none';
-          }}
-        >
+        <button className="btn-logout" onClick={handleLogout}>
           <IconLogout />
           <span>Logout</span>
         </button>
       </header>
 
       {/* Content */}
-      <main
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          maxWidth: 'var(--content-max)',
-          margin: '0 auto',
-          padding: `calc(var(--header-h) + 1rem) 1rem calc(var(--nav-h) + 1.2rem)`,
-          minHeight: '100vh',
-          minHeight: '100dvh',
-        }}
-      >
+      <main className="app-content">
         <RouteContent route={route} />
       </main>
 
-      {/* Bottom Navigation */}
-      <nav
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 'var(--nav-h)',
-          background: 'rgba(17,17,17,0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderTop: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          padding: '0 0.25rem',
-          zIndex: 100,
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}
-      >
+      <nav className="app-nav">
         {NAV_ITEMS.map((item) => {
           const active = route === item.route;
           return (
             <button
               key={item.route}
               onClick={() => navigate(item.route)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.2rem',
-                padding: '0.4rem 0.5rem',
-                borderRadius: 'var(--radius-sm)',
-                color: active ? 'var(--accent)' : 'var(--text-dim)',
-                fontSize: 'var(--font-size-xsmall)',
-                fontWeight: active ? 600 : 400,
-                transition: 'color 0.15s',
-                minWidth: '52px',
-              }}
+              className={`nav-item ${active ? 'nav-item-active' : ''}`}
             >
               <item.icon />
               <span>{item.label}</span>

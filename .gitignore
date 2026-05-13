@@ -43,3 +43,14 @@ dist/
 
 # Vite cache
 .vite/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Screenshots
+*.png
+!public/**/*.png
+
+# Environment
+.env
+.env.local
