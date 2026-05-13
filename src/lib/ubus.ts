@@ -1,8 +1,16 @@
+import { mockUbusCall, mockLogin, mockSessionId } from './ubus.mock';
+
+const MOCK = import.meta.env.VITE_MOCK === 'true';
+
+export function isMock(): boolean {
+  return MOCK;
+}
+
 const UBUS_URL = '/ubus';
 const SESSION_KEY = 'net4sats_session';
 const SESSION_USER = 'net4sats_user';
 
-let sessionId: string = '00000000000000000000000000000000';
+let sessionId: string = MOCK ? mockSessionId() : '00000000000000000000000000000000';
 
 const saved = localStorage.getItem(SESSION_KEY);
 if (saved) sessionId = saved;
@@ -14,6 +22,10 @@ export async function ubusCall(
   method: string,
   params: Record<string, any> = {}
 ): Promise<any> {
+  if (MOCK) {
+    return mockUbusCall(obj, method, params);
+  }
+
   const res = await fetch(UBUS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -43,6 +55,14 @@ export async function login(
   username: string,
   password: string
 ): Promise<any> {
+  if (MOCK) {
+    const data = await mockLogin(username, password);
+    sessionId = data.ubus_rpc_session;
+    localStorage.setItem(SESSION_KEY, sessionId);
+    localStorage.setItem(SESSION_USER, username);
+    return data;
+  }
+
   const res = await fetch(UBUS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -76,6 +96,7 @@ export function logout() {
 }
 
 export async function checkSession(): Promise<boolean> {
+  if (MOCK) return true;
   if (sessionId === '00000000000000000000000000000000') return false;
   try {
     await ubusCall('session', 'access', {
@@ -94,5 +115,5 @@ export function isLoggedIn(): boolean {
 }
 
 export function getSessionUser(): string {
-  return localStorage.getItem(SESSION_USER) || '';
+  return localStorage.getItem(SESSION_USER) || (MOCK ? 'root' : '');
 }

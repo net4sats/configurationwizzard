@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'preact/hooks';
 import { initRouter, useRoute, navigate } from './lib/router';
-import { checkSession, isLoggedIn } from './lib/ubus';
+import { checkSession, isLoggedIn, isMock } from './lib/ubus';
 import Layout from './components/layout';
 import LoginPage from './routes/login';
 
@@ -12,6 +12,11 @@ export default function App() {
   useEffect(() => {
     initRouter();
     (async () => {
+      if (isMock()) {
+        setAuthed(true);
+        setReady(true);
+        return;
+      }
       if (isLoggedIn()) {
         const valid = await checkSession();
         setAuthed(valid);
