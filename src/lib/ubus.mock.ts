@@ -173,6 +173,7 @@ export function mockUbusCall(
     },
     'uci.set': () => ({}),
     'uci.commit': () => ({}),
+    'tollgate.activate': () => ({ success: true, message: 'Access activated' }),
   };
 
   const handler = handlers[key];
