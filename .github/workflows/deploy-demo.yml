@@ -26,9 +26,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx vite build --base=/configurationwizzard/
-        env:
-          VITE_MOCK: "true"
+      - run: npm run build:pages
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
