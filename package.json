@@ -5,10 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-app.mjs",
     "preview": "vite preview",
     "demo": "VITE_MOCK=true vite",
-    "build:demo": "VITE_MOCK=true vite build",
+    "build:demo": "VITE_MOCK=true node scripts/build-app.mjs",
+    "build:pages": "VITE_MOCK=true VITE_BASE_PATH=/configurationwizzard/ node scripts/build-pages.mjs",
     "postinstall": "node -e \"const p=require('path').join(process.cwd(),'node_modules/zimmerframe/package.json');const d=require('fs').readFileSync(p,'utf8');const j=JSON.parse(d);j.main='./src/walk.js';j.exports['.'].require='./src/walk.js';require('fs').writeFileSync(p,JSON.stringify(j,null,2))\""
   },
   "repository": {

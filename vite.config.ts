@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import preact from '@preact/preset-vite'
 
+const base = process.env.VITE_BASE_PATH || '/net4sats/'
+
 export default defineConfig({
   plugins: [
     preact(),
@@ -20,5 +22,5 @@ export default defineConfig({
       },
     },
   },
-  base: '/net4sats/',
+  base,
 })
