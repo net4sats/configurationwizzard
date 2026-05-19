@@ -53,27 +53,31 @@ export default function Dashboard() {
   const [board, setBoard] = useState<any>(null);
   const [info, setInfo] = useState<any>(null);
   const [tollgate, setTollgate] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
   const [network, setNetwork] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const fetchAll = useCallback(async () => {
     try {
-      const [boardData, infoData, netData] = await Promise.allSettled([
+      const [boardData, infoData, netData, statusData, walletData] = await Promise.allSettled([
         ubusCall('system', 'board'),
         ubusCall('system', 'info'),
         ubusCall('network.interface', 'dump'),
+        ubusCall('tollgate', 'status'),
+        ubusCall('tollgate', 'wallet_balance'),
       ]);
 
       if (boardData.status === 'fulfilled') setBoard(boardData.value);
       if (infoData.status === 'fulfilled') setInfo(infoData.value);
       if (netData.status === 'fulfilled') setNetwork(netData.value);
 
-      try {
-        const tg = await ubusCall('tollgate', 'status');
-        setTollgate(tg);
-      } catch {
-        setTollgate(null);
+      if (statusData.status === 'fulfilled' && statusData.value?.success) {
+        setTollgate(statusData.value.data);
+      }
+
+      if (walletData.status === 'fulfilled' && walletData.value?.success) {
+        setWallet(walletData.value.data);
       }
 
       setError('');
@@ -106,9 +110,7 @@ export default function Dashboard() {
     return (
       <div className="loading-page flex-col gap-sm">
         <p className="error-text">{error}</p>
-        <button className="btn btn-secondary btn-sm" onClick={fetchAll}>
-          Retry
-        </button>
+        <button className="btn btn-secondary btn-sm" onClick={fetchAll}>Retry</button>
       </div>
     );
   }
@@ -130,16 +132,10 @@ export default function Dashboard() {
         }
       >
         <StatRow label="Hostname" value={board?.hostname || '—'} />
-        <StatRow
-          label="Uptime"
-          value={info?.uptime ? formatUptime(info.uptime) : '—'}
-        />
+        <StatRow label="Uptime" value={info?.uptime ? formatUptime(info.uptime) : (tollgate?.uptime || '—')} />
         <StatRow label="Kernel" value={board?.kernel || '—'} />
         <StatRow label="Architecture" value={board?.system || '—'} />
-        <StatRow
-          label="Firmware"
-          value={board?.release?.revision || board?.release?.version || '—'}
-        />
+        <StatRow label="Firmware" value={board?.release?.revision || board?.release?.version || '—'} />
       </InfoCard>
 
       <InfoCard
@@ -149,40 +145,17 @@ export default function Dashboard() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
             <rect x="4" y="4" width="16" height="16" rx="2" />
             <rect x="9" y="9" width="6" height="6" />
-            <line x1="9" y1="2" x2="9" y2="4" />
-            <line x1="15" y1="2" x2="15" y2="4" />
-            <line x1="9" y1="20" x2="9" y2="22" />
-            <line x1="15" y1="20" x2="15" y2="22" />
           </svg>
         }
       >
         {info?.memory && (
           <>
-            <StatRow
-              label="Total"
-              value={formatBytes(info.memory.total)}
-            />
-            <StatRow
-              label="Free"
-              value={formatBytes(info.memory.free)}
-            />
-            <StatRow
-              label="Buffers"
-              value={formatBytes(info.memory.buffered)}
-            />
-            <StatRow
-              label="Shared"
-              value={formatBytes(info.memory.shared)}
-            />
+            <StatRow label="Total" value={formatBytes(info.memory.total)} />
+            <StatRow label="Free" value={formatBytes(info.memory.free)} />
+            <StatRow label="Buffers" value={formatBytes(info.memory.buffered)} />
+            <StatRow label="Shared" value={formatBytes(info.memory.shared)} />
             <div style={{ marginTop: '0.5rem' }}>
-              <div
-                style={{
-                  height: '4px',
-                  background: 'var(--border)',
-                  borderRadius: '2px',
-                  overflow: 'hidden',
-                }}
-              >
+              <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                 <div
                   style={{
                     height: '100%',
@@ -193,19 +166,8 @@ export default function Dashboard() {
                   }}
                 />
               </div>
-              <p
-                style={{
-                  fontSize: 'var(--font-size-xsmall)',
-                  color: 'var(--text-dim)',
-                  marginTop: '0.3rem',
-                  textAlign: 'right' as const,
-                }}
-              >
-                {(
-                  ((info.memory.total - info.memory.free) / info.memory.total) *
-                  100
-                ).toFixed(0)}
-                % used
+              <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'var(--text-dim)', marginTop: '0.3rem', textAlign: 'right' }}>
+                {((info.memory.total - info.memory.free) / info.memory.total * 100).toFixed(0)}% used
               </p>
             </div>
           </>
@@ -235,22 +197,9 @@ export default function Dashboard() {
         />
         {wan && (
           <>
-            <StatRow
-              label="WAN IP"
-              value={wan['ipv4-address']?.[0]?.address || '—'}
-            />
-            <StatRow
-              label="Gateway"
-              value={wan.route?.[0]?.target || '—'}
-            />
-            <StatRow
-              label="DNS"
-              value={
-                wan['dns-server']?.length
-                  ? wan['dns-server'].join(', ')
-                  : '—'
-              }
-            />
+            <StatRow label="WAN IP" value={wan['ipv4-address']?.[0]?.address || '—'} />
+            <StatRow label="Gateway" value={wan.route?.[0]?.target || '—'} />
+            <StatRow label="DNS" value={wan['dns-server']?.length ? wan['dns-server'].join(', ') : '—'} />
             <StatRow label="Protocol" value={wan.proto || '—'} />
           </>
         )}
@@ -277,14 +226,19 @@ export default function Dashboard() {
                 )
               }
             />
-            <StatRow
-              label="Active Sessions"
-              value={String(tollgate.active_sessions ?? '—')}
-            />
-            <StatRow
-              label="Pricing"
-              value={tollgate.pricing_model || '—'}
-            />
+            {tollgate.version && (
+              <StatRow label="Version" value={typeof tollgate.version === 'string' ? tollgate.version : tollgate.version.version || '—'} />
+            )}
+            {tollgate.uptime && <StatRow label="Daemon Uptime" value={tollgate.uptime} />}
+            <StatRow label="Config" value={
+              tollgate.config_ok ? <span className="badge badge-success">OK</span> : <span className="badge badge-error">Error</span>
+            } />
+            <StatRow label="Wallet" value={
+              tollgate.wallet_ok ? <span className="badge badge-success">OK</span> : <span className="badge badge-error">Error</span>
+            } />
+            <StatRow label="Network" value={
+              tollgate.network_ok ? <span className="badge badge-success">OK</span> : <span className="badge badge-error">Error</span>
+            } />
           </>
         ) : (
           <p className="text-dim" style={{ fontSize: 'var(--font-size-small)' }}>
@@ -292,6 +246,25 @@ export default function Dashboard() {
           </p>
         )}
       </InfoCard>
+
+      {wallet && wallet.balance !== undefined && (
+        <InfoCard
+          title="Wallet"
+          className="animate-in-delay-4"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+              <rect x="2" y="5" width="20" height="14" rx="2" />
+              <path d="M16 12h.01" />
+              <path d="M2 10h20" />
+            </svg>
+          }
+        >
+          <StatRow
+            label="Balance"
+            value={<span style={{ fontWeight: 700, color: 'var(--accent)' }}>{wallet.balance.toLocaleString()} sats</span>}
+          />
+        </InfoCard>
+      )}
     </div>
   );
 }
