@@ -1,5 +1,6 @@
 import { useRoute, navigate, type Route } from '../lib/router';
 import { getSessionUser, logout as doLogout } from '../lib/ubus';
+import { withBase } from '../lib/paths';
 import ParticleBg from './particle-bg';
 import Dashboard from '../routes/dashboard';
 import Wifi from '../routes/wifi';
@@ -117,7 +118,7 @@ export default function Layout() {
       <header className="app-header">
         <div className="header-brand">
           <img
-            src="/net4sats/assets/logo/colour/net4sats-logo-colour.svg"
+            src={withBase('assets/logo/colour/net4sats-logo-colour.svg')}
             alt="net4sats"
             style={{ height: '26px' }}
           />

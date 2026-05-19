@@ -1,9 +1,11 @@
 import { useState } from 'preact/hooks';
-import { login } from '../lib/ubus';
+import { isMock, login } from '../lib/ubus';
+import { withBase } from '../lib/paths';
 import { navigate } from '../lib/router';
 import ParticleBg from '../components/particle-bg';
 
 export default function LoginPage() {
+  const mockMode = isMock();
   const [username, setUsername] = useState('root');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +34,6 @@ export default function LoginPage() {
         style={{
           position: 'relative',
           zIndex: 1,
-          minHeight: '100vh',
           minHeight: '100dvh',
           display: 'flex',
           flexDirection: 'column',
@@ -54,7 +55,7 @@ export default function LoginPage() {
         >
           <div style={{ textAlign: 'center' }}>
             <img
-              src="/net4sats/assets/logo/colour/net4sats-logo-colour.svg"
+              src={withBase('assets/logo/colour/net4sats-logo-colour.svg')}
               alt="net4sats"
               style={{ height: '44px', marginBottom: '0.4rem' }}
             />
@@ -158,10 +159,26 @@ export default function LoginPage() {
             style={{
               fontSize: 'var(--font-size-xsmall)',
               color: 'var(--text-dim)',
+              textAlign: 'center',
             }}
           >
             net4sats &middot; Powered by Lightning
           </p>
+
+          {mockMode && (
+            <a
+              href={withBase('mockups/')}
+              style={{
+                fontSize: 'var(--font-size-xsmall)',
+                color: 'var(--accent)',
+                textDecoration: 'none',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase' as const,
+              }}
+            >
+              Open published mockups
+            </a>
+          )}
         </div>
       </div>
     </>
