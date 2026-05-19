@@ -116,7 +116,7 @@ case "$1" in
         fi
         ;;
       upstream_list)
-        tollgate --json upstream list-upstream 2>/dev/null
+        tollgate --json upstream list 2>/dev/null
         ;;
       upstream_remove)
         INPUT=$(cat)
@@ -128,7 +128,7 @@ case "$1" in
           json_dump
           exit 0
         fi
-        tollgate --json upstream remove-upstream "$SSID" 2>/dev/null
+        tollgate --json upstream remove "$SSID" 2>/dev/null
         ;;
       *)
         json_init
