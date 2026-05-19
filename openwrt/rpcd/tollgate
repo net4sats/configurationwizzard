@@ -1,78 +1,139 @@
 #!/bin/sh
+# rpcd plugin for tollgate --json commands
+# Methods map 1:1 to tollgate --json CLI commands
 . /usr/share/libubox/jshn.sh
 
 case "$1" in
   list)
-    echo '{"status":{},"pricing":{},"wallet_balance":{},"wallet_drain":{"method":"string"},"activate":{"token":"string","type":"string","amount":0},"configure":{"pricing_model":"string","price_per_unit":0,"min_purchase":0,"lnurl":"string","password":"string","hostname":"string"},"sessions":{}}'
+    echo '{
+      "config_schema":{},
+      "config_get":{},
+      "config_set":{"key":"string","value":"string"},
+      "config_save":{"json":"string"},
+      "config_save_identities":{"json":"string"},
+      "wallet_balance":{},
+      "wallet_info":{},
+      "wallet_fund":{"token":"string"},
+      "wallet_drain_cashu":{},
+      "status":{},
+      "health":{},
+      "upstream_scan":{},
+      "upstream_connect":{"ssid":"string","passphrase":"string"},
+      "upstream_list":{},
+      "upstream_remove":{"ssid":"string"}
+    }'
     ;;
   call)
     case "$2" in
-      status)
-        OUTPUT=$(tollgate status 2>&1 || echo "not running")
-        json_init
-        json_add_string "output" "$OUTPUT"
-        json_add_string "service" "$(pgrep -f tollgate-basic > /dev/null && echo 'running' || echo 'stopped')"
-        json_dump
+      config_schema)
+        tollgate --json config schema 2>/dev/null
         ;;
-      pricing)
-        json_init
-        json_add_string "model" "$(uci -q get tollgate.pricing.model || echo 'time')"
-        json_add_string "price_per_unit" "$(uci -q get tollgate.pricing.price || echo '1')"
-        json_add_string "min_purchase" "$(uci -q get tollgate.pricing.min || echo '5')"
-        json_add_string "currency" "$(uci -q get tollgate.pricing.currency || echo 'sat')"
-        json_dump
+      config_get)
+        tollgate --json config get 2>/dev/null
+        ;;
+      config_set)
+        INPUT=$(cat)
+        KEY=$(echo "$INPUT" | jsonfilter -e '@.key' 2>/dev/null)
+        VAL=$(echo "$INPUT" | jsonfilter -e '@.value' 2>/dev/null)
+        if [ -z "$KEY" ]; then
+          json_init
+          json_add_boolean "success" 0
+          json_add_string "error" "key is required"
+          json_dump
+          exit 0
+        fi
+        tollgate --json config set "$KEY" "$VAL" 2>/dev/null
+        ;;
+      config_save)
+        INPUT=$(cat)
+        JSON=$(echo "$INPUT" | jsonfilter -e '@.json' 2>/dev/null)
+        if [ -z "$JSON" ]; then
+          json_init
+          json_add_boolean "success" 0
+          json_add_string "error" "json is required"
+          json_dump
+          exit 0
+        fi
+        echo "$JSON" | tollgate --json config save 2>/dev/null
+        ;;
+      config_save_identities)
+        INPUT=$(cat)
+        JSON=$(echo "$INPUT" | jsonfilter -e '@.json' 2>/dev/null)
+        if [ -z "$JSON" ]; then
+          json_init
+          json_add_boolean "success" 0
+          json_add_string "error" "json is required"
+          json_dump
+          exit 0
+        fi
+        echo "$JSON" | tollgate --json config save-identities 2>/dev/null
         ;;
       wallet_balance)
-        OUTPUT=$(tollgate wallet balance 2>&1 || echo '{"error":"wallet not available"}')
-        echo "$OUTPUT"
+        tollgate --json wallet balance 2>/dev/null
         ;;
-      wallet_drain)
-        INPUT=$(cat)
-        METHOD=$(echo "$INPUT" | jsonfilter -e '@.method' 2>/dev/null || echo "cashu")
-        OUTPUT=$(tollgate wallet drain "$METHOD" 2>&1 || echo '{"error":"drain failed"}')
-        echo "$OUTPUT"
+      wallet_info)
+        tollgate --json wallet info 2>/dev/null
         ;;
-      activate)
+      wallet_fund)
         INPUT=$(cat)
         TOKEN=$(echo "$INPUT" | jsonfilter -e '@.token' 2>/dev/null)
-        TYPE=$(echo "$INPUT" | jsonfilter -e '@.type' 2>/dev/null)
-        AMOUNT=$(echo "$INPUT" | jsonfilter -e '@.amount' 2>/dev/null)
-        if [ -n "$TOKEN" ]; then
-          OUTPUT=$(tollgate activate --token "$TOKEN" --type "$TYPE" --amount "$AMOUNT" 2>&1)
-        else
-          OUTPUT=$(tollgate activate --type "$TYPE" --amount "$AMOUNT" 2>&1)
+        if [ -z "$TOKEN" ]; then
+          json_init
+          json_add_boolean "success" 0
+          json_add_string "error" "token is required"
+          json_dump
+          exit 0
         fi
-        json_init
-        json_add_string "result" "$OUTPUT"
-        json_dump
+        tollgate --json wallet fund "$TOKEN" 2>/dev/null
         ;;
-      configure)
+      wallet_drain_cashu)
+        tollgate --json wallet drain cashu 2>/dev/null
+        ;;
+      status)
+        tollgate --json status 2>/dev/null
+        ;;
+      health)
+        tollgate --json health 2>/dev/null
+        ;;
+      upstream_scan)
+        tollgate --json upstream scan 2>/dev/null
+        ;;
+      upstream_connect)
         INPUT=$(cat)
-        PRICING_MODEL=$(echo "$INPUT" | jsonfilter -e '@.pricing_model' 2>/dev/null)
-        PRICE=$(echo "$INPUT" | jsonfilter -e '@.price_per_unit' 2>/dev/null)
-        MIN_PURCHASE=$(echo "$INPUT" | jsonfilter -e '@.min_purchase' 2>/dev/null)
-        LNURL=$(echo "$INPUT" | jsonfilter -e '@.lnurl' 2>/dev/null)
-        PASSWORD=$(echo "$INPUT" | jsonfilter -e '@.password' 2>/dev/null)
-        HOSTNAME=$(echo "$INPUT" | jsonfilter -e '@.hostname' 2>/dev/null)
-        
-        [ -n "$PRICING_MODEL" ] && uci set tollgate.pricing.model="$PRICING_MODEL"
-        [ -n "$PRICE" ] && uci set tollgate.pricing.price="$PRICE"
-        [ -n "$MIN_PURCHASE" ] && uci set tollgate.pricing.min="$MIN_PURCHASE"
-        [ -n "$LNURL" ] && uci set tollgate.lightning.lnurl="$LNURL"
-        [ -n "$HOSTNAME" ] && { uci set system.@system[0].hostname="$HOSTNAME"; /etc/init.d/system reload; }
-        [ -n "$PASSWORD" ] && printf '%s' "$PASSWORD" | passwd root >/dev/null 2>&1
-        
-        uci commit tollgate 2>/dev/null
-        /etc/init.d/tollgate-basic restart 2>/dev/null
-        
-        json_init
-        json_add_string "status" "ok"
-        json_dump
+        SSID=$(echo "$INPUT" | jsonfilter -e '@.ssid' 2>/dev/null)
+        PASS=$(echo "$INPUT" | jsonfilter -e '@.passphrase' 2>/dev/null)
+        if [ -z "$SSID" ]; then
+          json_init
+          json_add_boolean "success" 0
+          json_add_string "error" "ssid is required"
+          json_dump
+          exit 0
+        fi
+        if [ -n "$PASS" ]; then
+          tollgate --json upstream connect "$SSID" "$PASS" 2>/dev/null
+        else
+          tollgate --json upstream connect "$SSID" 2>/dev/null
+        fi
         ;;
-      sessions)
-        OUTPUT=$(tollgate sessions 2>&1 || echo "no active sessions")
+      upstream_list)
+        tollgate --json upstream list-upstream 2>/dev/null
+        ;;
+      upstream_remove)
+        INPUT=$(cat)
+        SSID=$(echo "$INPUT" | jsonfilter -e '@.ssid' 2>/dev/null)
+        if [ -z "$SSID" ]; then
+          json_init
+          json_add_boolean "success" 0
+          json_add_string "error" "ssid is required"
+          json_dump
+          exit 0
+        fi
+        tollgate --json upstream remove-upstream "$SSID" 2>/dev/null
+        ;;
+      *)
         json_init
-        json_add_string "output" "$OUTPUT"
+        json_add_boolean "success" 0
+        json_add_string "error" "unknown method"
         json_dump
         ;;
     esac
