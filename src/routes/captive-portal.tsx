@@ -211,7 +211,7 @@ export default function CaptivePortal() {
       <div className="tollgate-captive-portal">
         <div className="tollgate-captive-portal-header">
           <img
-            src="https://net4sats.cash/assets/logo/colour/net4sats-logo-colour.png"
+            src="/assets/logo/colour/net4sats-logo-colour.png"
             alt="net4sats"
           />
           <p className="powered-by">
@@ -259,7 +259,7 @@ export default function CaptivePortal() {
       <div className="tollgate-captive-portal">
         <div className="tollgate-captive-portal-header">
           <img
-            src="https://net4sats.cash/assets/logo/colour/net4sats-logo-colour.png"
+            src="/assets/logo/colour/net4sats-logo-colour.png"
             alt="net4sats"
           />
           <p className="powered-by">
@@ -314,7 +314,7 @@ export default function CaptivePortal() {
     <div className="tollgate-captive-portal">
       <div className="tollgate-captive-portal-header">
         <img
-          src="https://net4sats.cash/assets/logo/colour/net4sats-logo-colour.png"
+          src="/assets/logo/colour/net4sats-logo-colour.png"
           alt="net4sats"
         />
         <p className="powered-by">

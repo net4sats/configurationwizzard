@@ -20,7 +20,7 @@ export default function PwaModal() {
         <button className="close-btn" onClick={() => setVisible(false)}>×</button>
         <div className="icon-wrap">
           <img
-            src="https://net4sats.cash/assets/icon/white/net4sats-icon-white.png"
+            src="/assets/icon/white/net4sats-icon-white.png"
             alt="net4sats"
           />
         </div>
