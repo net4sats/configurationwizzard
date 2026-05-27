@@ -1,61 +1,86 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { ubusCall } from '../lib/ubus';
+import SchemaForm, { type FieldSchema } from '../components/schema-form';
 
-interface PricingConfig {
-  model: string;
-  rate: string;
-  minimum: string;
-  currency?: string;
+type FieldGroup = {
+  label: string;
+  keys: string[];
+};
+
+const FIELD_GROUPS: FieldGroup[] = [
+  { label: 'General', keys: ['log_level', 'metric', 'step_size', 'margin', 'show_setup', 'reseller_mode', 'manual_pause_seconds'] },
+  { label: 'Accepted Mints', keys: ['accepted_mints'] },
+  { label: 'Profit Share', keys: ['profit_share'] },
+  { label: 'Upstream Detector', keys: ['probe_timeout', 'probe_retry_count', 'probe_retry_delay', 'require_valid_signature', 'ignore_interfaces'] },
+];
+
+function groupFields(schema: FieldSchema[]): { label: string; fields: FieldSchema[] }[] {
+  const groups: { label: string; fields: FieldSchema[] }[] = [];
+  const used = new Set<string>();
+
+  for (const group of FIELD_GROUPS) {
+    const fields: FieldSchema[] = [];
+    for (const field of schema) {
+      if (group.keys.includes(field.json_key)) {
+        fields.push(field);
+        used.add(field.json_key);
+      }
+      if (field.json_key === 'upstream_detector' && group.keys.some(k => k.startsWith('probe_') || k.startsWith('require_') || k.startsWith('ignore_'))) {
+        fields.push(field);
+        used.add(field.json_key);
+      }
+      if (field.json_key === 'upstream_wifi' && group.keys.includes('manual_pause_seconds')) {
+        fields.push(field);
+        used.add(field.json_key);
+      }
+    }
+    if (fields.length > 0) {
+      groups.push({ label: group.label, fields });
+    }
+  }
+
+  const remaining = schema.filter(f => !used.has(f.json_key) && f.editable);
+  if (remaining.length > 0) {
+    groups.push({ label: 'Other', fields: remaining });
+  }
+
+  return groups;
 }
 
 export default function Settings() {
-  const [pricing, setPricing] = useState<PricingConfig>({
-    model: 'time',
-    rate: '',
-    minimum: '',
-  });
+  const [schema, setSchema] = useState<FieldSchema[]>([]);
+  const [configValues, setConfigValues] = useState<Record<string, any>>({});
+  const [originalValues, setOriginalValues] = useState<Record<string, any>>({});
   const [hostname, setHostname] = useState('');
   const [currentHostname, setCurrentHostname] = useState('');
-  const [lnurl, setLnurl] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [messages, setMessages] = useState<Record<string, string>>({});
 
   const fetchSettings = useCallback(async () => {
     try {
-      const [boardData, pricingData] = await Promise.allSettled([
+      const [schemaRes, configRes, boardData] = await Promise.allSettled([
+        ubusCall('tollgate', 'config_schema'),
+        ubusCall('tollgate', 'config_get'),
         ubusCall('system', 'board'),
-        ubusCall('tollgate', 'pricing'),
       ]);
+
+      if (schemaRes.status === 'fulfilled' && schemaRes.value?.data?.config) {
+        setSchema(schemaRes.value.data.config);
+      }
+
+      if (configRes.status === 'fulfilled' && configRes.value?.data?.config) {
+        setConfigValues(configRes.value.data.config);
+        setOriginalValues(configRes.value.data.config);
+      }
 
       if (boardData.status === 'fulfilled' && boardData.value?.hostname) {
         setHostname(boardData.value.hostname);
         setCurrentHostname(boardData.value.hostname);
-      }
-
-      if (pricingData.status === 'fulfilled' && pricingData.value) {
-        setPricing({
-          model: pricingData.value.model || 'time',
-          rate: String(pricingData.value.rate || ''),
-          minimum: String(pricingData.value.minimum || ''),
-          currency: pricingData.value.currency || 'sats',
-        });
-      }
-
-      // Try to get LNURL from UCI
-      try {
-        const cfg = await ubusCall('uci', 'get', {
-          config: 'tollgate',
-          section: 'lnurl',
-        });
-        if (cfg?.value?.lnurl) {
-          setLnurl(cfg.value.lnurl);
-        }
-      } catch {
-        // Not configured
       }
 
       setError('');
@@ -81,45 +106,51 @@ export default function Settings() {
     }, 3000);
   }
 
-  async function savePricing() {
+  function handleSchemaChange(key: string, value: any) {
+    setConfigValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function saveSchemaChanges() {
+    const changed: Record<string, any> = {};
+    for (const key of Object.keys(configValues)) {
+      if (JSON.stringify(configValues[key]) !== JSON.stringify(originalValues[key])) {
+        changed[key] = configValues[key];
+      }
+    }
+
+    if (Object.keys(changed).length === 0) {
+      setMessage('schema', 'No changes to save');
+      return;
+    }
+
+    setSaving(true);
     try {
-      await ubusCall('tollgate', 'configure', {
-        model: pricing.model,
-        rate: Number(pricing.rate),
-        minimum: Number(pricing.minimum),
-      });
-      setMessage('pricing', 'saved');
+      for (const [key, value] of Object.entries(changed)) {
+        const val = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        const res = await ubusCall('tollgate', 'config_set', { key, value: val });
+        if (!res.success) {
+          setMessage('schema', `Error setting ${key}: ${res.error}`);
+          setSaving(false);
+          return;
+        }
+      }
+      setOriginalValues({ ...configValues });
+      setMessage('schema', 'saved — restart tollgate-wrt to apply');
     } catch (err: any) {
-      setMessage('pricing', `Error: ${err.message}`);
+      setMessage('schema', `Error: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
   }
 
   async function saveHostname() {
     try {
-      await ubusCall('uci', 'set', {
-        config: 'system',
-        section: '@system[0]',
-        values: { hostname },
-      });
+      await ubusCall('uci', 'set', { config: 'system', section: '@system[0]', values: { hostname } });
       await ubusCall('uci', 'commit', { config: 'system' });
       setCurrentHostname(hostname);
       setMessage('hostname', 'saved');
     } catch (err: any) {
       setMessage('hostname', `Error: ${err.message}`);
-    }
-  }
-
-  async function saveLnurl() {
-    try {
-      await ubusCall('uci', 'set', {
-        config: 'tollgate',
-        section: 'lnurl',
-        values: { lnurl },
-      });
-      await ubusCall('uci', 'commit', { config: 'tollgate' });
-      setMessage('lnurl', 'saved');
-    } catch (err: any) {
-      setMessage('lnurl', `Error: ${err.message}`);
     }
   }
 
@@ -133,9 +164,7 @@ export default function Settings() {
       return;
     }
     try {
-      await ubusCall('system', 'password_set', {
-        password: newPassword,
-      });
+      await ubusCall('system', 'password_set', { password: newPassword });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -157,27 +186,51 @@ export default function Settings() {
     return (
       <div className="loading-page flex-col gap-sm">
         <p className="error-text">{error}</p>
-        <button className="btn btn-secondary btn-sm" onClick={fetchSettings}>
-          Retry
-        </button>
+        <button className="btn btn-secondary btn-sm" onClick={fetchSettings}>Retry</button>
       </div>
     );
   }
+
+  const groups = groupFields(schema);
 
   return (
     <div className="flex flex-col gap-md">
       <h2
         className="animate-in"
-        style={{
-          fontSize: 'var(--font-size-large)',
-          fontWeight: 700,
-        }}
+        style={{ fontSize: 'var(--font-size-large)', fontWeight: 700 }}
       >
         Settings
       </h2>
 
-      {/* Hostname */}
-      <div className="card animate-in-delay-1">
+      {groups.map((group, gi) => (
+        <div key={group.label} className={`card animate-in-delay-${Math.min(gi + 1, 4)}`}>
+          <div className="card-header">
+            <div className="card-title">{group.label}</div>
+          </div>
+          <SchemaForm
+            fields={group.fields}
+            values={configValues}
+            onChange={handleSchemaChange}
+            disabled={saving}
+          />
+        </div>
+      ))}
+
+      {groups.length > 0 && (
+        <div className="flex items-center gap-sm animate-in-delay-3">
+          <button className="btn btn-primary btn-sm" onClick={saveSchemaChanges} disabled={saving}>
+            {saving ? 'Saving…' : 'Save All Changes'}
+          </button>
+          {messages.schema &&
+            (messages.schema === 'saved — restart tollgate-wrt to apply' || messages.schema.startsWith('saved') ? (
+              <span className="success-text">{messages.schema}</span>
+            ) : (
+              <span className="error-text">{messages.schema}</span>
+            ))}
+        </div>
+      )}
+
+      <div className="card animate-in-delay-4">
         <div className="card-header">
           <div className="card-title">Hostname</div>
         </div>
@@ -189,11 +242,7 @@ export default function Settings() {
             onInput={(e) => setHostname((e.target as HTMLInputElement).value)}
           />
           <div className="flex items-center gap-sm">
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={saveHostname}
-              disabled={hostname === currentHostname}
-            >
+            <button className="btn btn-primary btn-sm" onClick={saveHostname} disabled={hostname === currentHostname}>
               Save
             </button>
             {messages.hostname &&
@@ -206,109 +255,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Pricing */}
-      <div className="card animate-in-delay-2">
-        <div className="card-header">
-          <div className="card-title">Pricing</div>
-        </div>
-        <div className="flex flex-col gap-sm">
-          <div className="input-group">
-            <label className="input-label">Model</label>
-            <select
-              className="input"
-              value={pricing.model}
-              onChange={(e) =>
-                setPricing((p) => ({
-                  ...p,
-                  model: (e.target as HTMLSelectElement).value,
-                }))
-              }
-              style={{ appearance: 'none', paddingRight: '2rem' }}
-            >
-              <option value="time">Time-based</option>
-              <option value="data">Data-based</option>
-            </select>
-          </div>
-          <div className="input-group">
-            <label className="input-label">
-              Rate ({pricing.model === 'time' ? 'sats/hour' : 'sats/MB'})
-            </label>
-            <input
-              type="number"
-              className="input"
-              value={pricing.rate}
-              onInput={(e) =>
-                setPricing((p) => ({
-                  ...p,
-                  rate: (e.target as HTMLInputElement).value,
-                }))
-              }
-              placeholder="e.g. 100"
-            />
-          </div>
-          <div className="input-group">
-            <label className="input-label">
-              Minimum purchase ({pricing.model === 'time' ? 'minutes' : 'MB'})
-            </label>
-            <input
-              type="number"
-              className="input"
-              value={pricing.minimum}
-              onInput={(e) =>
-                setPricing((p) => ({
-                  ...p,
-                  minimum: (e.target as HTMLInputElement).value,
-                }))
-              }
-              placeholder="e.g. 30"
-            />
-          </div>
-          <div className="flex items-center gap-sm">
-            <button className="btn btn-primary btn-sm" onClick={savePricing}>
-              Save
-            </button>
-            {messages.pricing &&
-              (messages.pricing === 'saved' ? (
-                <span className="success-text">{messages.pricing}</span>
-              ) : (
-                <span className="error-text">{messages.pricing}</span>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      {/* LNURL */}
-      <div className="card animate-in-delay-3">
-        <div className="card-header">
-          <div className="card-title">LNURL</div>
-        </div>
-        <div className="flex flex-col gap-sm">
-          <div className="input-group">
-            <label className="input-label">Lightning LNURL</label>
-            <input
-              type="text"
-              className="input"
-              value={lnurl}
-              onInput={(e) => setLnurl((e.target as HTMLInputElement).value)}
-              placeholder="lnurlp://..."
-              style={{ fontSize: 'var(--font-size-small)' }}
-            />
-          </div>
-          <div className="flex items-center gap-sm">
-            <button className="btn btn-primary btn-sm" onClick={saveLnurl}>
-              Save
-            </button>
-            {messages.lnurl &&
-              (messages.lnurl === 'saved' ? (
-                <span className="success-text">{messages.lnurl}</span>
-              ) : (
-                <span className="error-text">{messages.lnurl}</span>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Password */}
       <div className="card animate-in-delay-4">
         <div className="card-header">
           <div className="card-title">Admin Password</div>
@@ -320,9 +266,7 @@ export default function Settings() {
               type="password"
               className="input"
               value={newPassword}
-              onInput={(e) =>
-                setNewPassword((e.target as HTMLInputElement).value)
-              }
+              onInput={(e) => setNewPassword((e.target as HTMLInputElement).value)}
               placeholder="Enter new password"
             />
           </div>
@@ -332,9 +276,7 @@ export default function Settings() {
               type="password"
               className="input"
               value={confirmPassword}
-              onInput={(e) =>
-                setConfirmPassword((e.target as HTMLInputElement).value)
-              }
+              onInput={(e) => setConfirmPassword((e.target as HTMLInputElement).value)}
               placeholder="Confirm new password"
             />
           </div>
@@ -354,43 +296,6 @@ export default function Settings() {
               ))}
           </div>
         </div>
-      </div>
-
-      {/* Advanced (LuCI) */}
-      <div className="card animate-in-delay-4">
-        <div className="card-header">
-          <div className="card-title">Advanced</div>
-        </div>
-        <p
-          className="text-muted"
-          style={{ fontSize: 'var(--font-size-small)', marginBottom: '0.6rem' }}
-        >
-          Open the full LuCI web interface for advanced configuration options.
-        </p>
-        <a
-          href="http://192.168.1.1:8080"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-secondary btn-sm"
-          style={{
-            display: 'inline-flex',
-            textDecoration: 'none',
-          }}
-        >
-          Open LuCI
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
-        </a>
       </div>
     </div>
   );

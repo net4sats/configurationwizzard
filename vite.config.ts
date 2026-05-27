@@ -1,15 +1,32 @@
 import { defineConfig } from 'vite'
 import preact from '@preact/preset-vite'
+import { resolve } from 'path'
 
-const base = process.env.VITE_BASE_PATH || '/net4sats/'
+const app = process.env.VITE_APP || 'admin'
+
+const inputs = {
+  admin: resolve(__dirname, 'admin.html'),
+  portal: resolve(__dirname, 'portal.html'),
+}
+
+const bases = {
+  admin: '/net4sats/',
+  portal: '/',
+}
 
 export default defineConfig({
   plugins: [
     preact(),
   ],
+  root: '.',
+  base: bases[app],
   build: {
-    outDir: 'dist',
+    outDir: `dist/${app}`,
+    emptyOutDir: true,
     sourcemap: true,
+    rollupOptions: {
+      input: inputs[app],
+    },
   },
   optimizeDeps: {
     include: ['zimmerframe'],
@@ -20,7 +37,11 @@ export default defineConfig({
         target: 'http://192.168.1.1',
         changeOrigin: true,
       },
+      '/api': {
+        target: 'http://192.168.1.1:2121',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
-  base,
 })

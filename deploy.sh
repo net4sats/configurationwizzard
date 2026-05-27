@@ -7,9 +7,13 @@ REMOTE_USER=root
 echo "Building..."
 npm run build
 
-echo "Deploying to $ROUTER..."
+echo "Deploying admin to $ROUTER..."
 ssh "$REMOTE_USER@$ROUTER" "mkdir -p /www/net4sats"
-scp -r dist/. "$REMOTE_USER@$ROUTER:/www/net4sats/"
+scp -r dist/admin/. "$REMOTE_USER@$ROUTER:/www/net4sats/"
+
+echo "Deploying captive portal to $ROUTER..."
+ssh "$REMOTE_USER@$ROUTER" "mkdir -p /etc/nodogsplash/htdocs"
+scp -r dist/portal/. "$REMOTE_USER@$ROUTER:/etc/nodogsplash/htdocs/"
 
 echo "Installing rpcd plugin..."
 ssh "$REMOTE_USER@$ROUTER" "mkdir -p /usr/libexec/rpcd /usr/share/rpcd/acl.d"
@@ -21,5 +25,10 @@ echo "Configuring uhttpd..."
 scp openwrt/files/etc/config/uhttpd_net4sats "$REMOTE_USER@$ROUTER:/etc/config/uhttpd_net4sats"
 ssh "$REMOTE_USER@$ROUTER" "/etc/init.d/uhttpd restart"
 
-echo "Done! Access at http://$ROUTER/ or http://net4sats.lan/"
-echo "LuCI available at http://$ROUTER:8080/"
+echo "Restarting NoDogSplash..."
+ssh "$REMOTE_USER@$ROUTER" "/etc/init.d/nodogsplash restart 2>/dev/null || echo 'nodogsplash not installed'"
+
+echo "Done!"
+echo "  Admin:    http://$ROUTER/"
+echo "  Portal:   http://$ROUTER:2050/ (via NoDogSplash redirect)"
+echo "  LuCI:     http://$ROUTER:8080/"

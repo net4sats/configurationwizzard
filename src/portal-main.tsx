@@ -1,8 +1,9 @@
+import { render } from 'preact';
 import ParticleBg from './components/particle-bg';
 import PwaModal from './components/pwa-modal';
 import CaptivePortal from './routes/captive-portal';
 
-export default function App() {
+function PortalApp() {
   return (
     <>
       <ParticleBg />
@@ -11,3 +12,5 @@ export default function App() {
     </>
   );
 }
+
+render(<PortalApp />, document.getElementById('app')!);
