@@ -54,3 +54,4 @@ dist/
 # Environment
 .env
 .env.local
+*.ipk
