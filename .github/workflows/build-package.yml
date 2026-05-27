@@ -1,0 +1,204 @@
+name: Build and Publish Package
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PACKAGE_NAME: "configurationwizzard"
+  NODE_VERSION: "22"
+
+jobs:
+  determine-versioning:
+    runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.version.outputs.package_version }}
+      release_channel: ${{ steps.version.outputs.release_channel }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            CHANNEL="stable"
+          else
+            CHANNEL="dev"
+          fi
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BASE_VERSION=$(jq -r .version package.json)
+          PACKAGE_VERSION="${CHANNEL}.${BASE_VERSION}.${{ github.run_number }}.${SHORT_SHA}"
+          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "release_channel=${CHANNEL}" >> $GITHUB_OUTPUT
+          echo "Version: ${PACKAGE_VERSION} (${CHANNEL})"
+
+  build-spa:
+    runs-on: ubuntu-latest
+    needs: determine-versioning
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spa-dist
+          path: dist/
+
+  package-ipk:
+    needs: [determine-versioning, build-spa]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - arm_cortex-a7
+          - mips_24kc
+          - mipsel_24kc
+          - x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: spa-dist
+          path: dist/
+      - name: Build ipk
+        run: |
+          chmod +x packaging/build-ipk.sh
+          packaging/build-ipk.sh \
+            "${{ matrix.architecture }}" \
+            "${{ needs.determine-versioning.outputs.package_version }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PACKAGE_NAME }}_${{ needs.determine-versioning.outputs.package_version }}_${{ matrix.architecture }}.ipk
+          path: "*.ipk"
+
+  publish-metadata:
+    needs: [determine-versioning, package-ipk]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: ubuntu:latest
+      options: --user root
+    defaults:
+      run:
+        shell: bash
+    env:
+      BLOSSOM_SERVER: "https://cmbethpcg000e5el0ehhk5933-blossom.eggstr.com"
+      RELAYS: "wss://relay.damus.io wss://nos.lol wss://nostr.mom wss://relay.tollgate.me"
+      PACKAGE_VERSION: ${{ needs.determine-versioning.outputs.package_version }}
+      RELEASE_CHANNEL: ${{ needs.determine-versioning.outputs.release_channel }}
+    steps:
+      - name: Install required tools
+        run: |
+          apt-get update
+          apt-get install -y curl jq
+          curl -L "https://github.com/fiatjaf/nak/releases/download/v0.16.2/nak-v0.16.2-linux-amd64" -o /usr/local/bin/nak
+          chmod +x /usr/local/bin/nak
+          nak --version
+
+      - name: Download all package artifacts
+        uses: actions/download-artifact@v3
+        with:
+          pattern: "${{ env.PACKAGE_NAME }}_*"
+          path: ./artifacts
+          merge-multiple: true
+
+      - name: Upload to Blossom
+        id: blossom
+        env:
+          NSEC_HEX: ${{ secrets.NSEC_HEX }}
+        run: |
+          set -euo pipefail
+
+          upload_one() {
+            local file="$1"
+            local attempt=1 delay=2
+            while [ $attempt -le 3 ]; do
+              if resp=$(nak blossom upload --server "$BLOSSOM_SERVER" --sec "$NSEC_HEX" "$file" < /dev/null 2>&1); then
+                local hash
+                hash=$(printf '%s' "$resp" | jq -r '.sha256 // empty' 2>/dev/null || echo "")
+                if [ -n "$hash" ] && [ "$hash" != "null" ]; then
+                  printf '%s' "$hash"
+                  return 0
+                fi
+              fi
+              echo "  attempt ${attempt} failed for $(basename "$file"); retrying in ${delay}s..." >&2
+              echo "  response: $resp" >&2
+              sleep $delay
+              delay=$((delay * 2))
+              attempt=$((attempt + 1))
+            done
+            return 1
+          }
+
+          : > manifest.jsonl
+          for file in ./artifacts/*.ipk; do
+            [ -f "$file" ] || continue
+            filename=$(basename "$file")
+            arch=$(echo "$filename" | sed -E 's/.*_([^_]+)\.ipk/\1/')
+            echo "Uploading $filename..."
+            if ! hash=$(upload_one "$file"); then
+              echo "ERROR: blossom upload failed for $filename" >&2
+              exit 1
+            fi
+            jq -cn \
+              --arg filename "$filename" --arg arch "$arch" --arg hash "$hash" \
+              '{filename:$filename, architecture:$arch, format:"ipk", compression:"none", hash:$hash, url:("'"$BLOSSOM_SERVER"'/" + $hash + ".ipk")}' \
+              >> manifest.jsonl
+            echo "  uploaded: $hash"
+          done
+
+          echo "---"
+          echo "Manifest:"
+          cat manifest.jsonl
+
+      - name: Build NIP-94 events
+        env:
+          NSEC_HEX: ${{ secrets.NSEC_HEX }}
+        run: |
+          set -euo pipefail
+          : > events.jsonl
+          while read -r entry; do
+            filename=$(printf '%s' "$entry" | jq -r '.filename')
+            arch=$(printf '%s' "$entry" | jq -r '.architecture')
+            hash=$(printf '%s' "$entry" | jq -r '.hash')
+            url=$(printf '%s' "$entry" | jq -r '.url')
+
+            nak event --sec "$NSEC_HEX" -k 1063 \
+              -c "net4sats Package: $PACKAGE_NAME for $arch" \
+              --tag url="$url" \
+              --tag m="application/octet-stream" \
+              --tag x="$hash" \
+              --tag ox="$hash" \
+              --tag filename="$filename" \
+              --tag A="$arch" \
+              --tag v="$PACKAGE_VERSION" \
+              --tag c="$RELEASE_CHANNEL" \
+              --tag n="$PACKAGE_NAME" \
+              --tag compression="none" \
+              --tag format="ipk" \
+              < /dev/null \
+              | jq -c . >> events.jsonl
+          done < manifest.jsonl
+
+          event_count=$(wc -l < events.jsonl)
+          echo "Built $event_count NIP-94 events."
+          if [ "$event_count" -eq 0 ]; then
+            echo "ERROR: no events built" >&2
+            exit 1
+          fi
+
+      - name: Publish events
+        run: |
+          set -euo pipefail
+          cat events.jsonl | nak event $RELAYS
+
+      - name: Build summary
+        run: |
+          echo "Published $(wc -l < events.jsonl) NIP-94 events across $(echo $RELAYS | wc -w) relays."
+          jq -r '"  \(.architecture) ipk: \(.url)"' manifest.jsonl
