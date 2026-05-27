@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
@@ -78,7 +78,7 @@ jobs:
 
   publish-metadata:
     needs: [determine-versioning, package-ipk]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
@@ -102,7 +102,7 @@ jobs:
           nak --version
 
       - name: Download all package artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           pattern: "${{ env.PACKAGE_NAME }}_*"
           path: ./artifacts
