@@ -1,0 +1,15 @@
+#!/bin/sh
+echo "Removing net4sats admin panel..."
+
+# Remove uhttpd section if it exists
+if uci -q get uhttpd.net4sats >/dev/null 2>&1; then
+    echo "Removing uhttpd net4sats section"
+    uci delete uhttpd.net4sats
+    uci commit uhttpd
+fi
+
+/etc/init.d/rpcd restart
+/etc/init.d/uhttpd restart
+
+echo "net4sats admin panel removed."
+exit 0

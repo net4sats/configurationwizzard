@@ -1,0 +1,28 @@
+#!/bin/sh
+
+echo "Running post-installation for net4sats-admin..."
+
+# Set up uhttpd listener for the admin SPA
+if ! uci -q get uhttpd.net4sats >/dev/null 2>&1; then
+    echo "Adding uhttpd net4sats section for admin SPA"
+    uci set uhttpd.net4sats=uhttpd
+    uci set uhttpd.net4sats.home='/www/net4sats'
+    uci set uhttpd.net4sats.ubus_prefix='/ubus'
+    uci set uhttpd.net4sats.script_timeout='60'
+    uci set uhttpd.net4sats.network_timeout='30'
+    uci set uhttpd.net4sats.max_requests='3'
+    uci set uhttpd.net4sats.tcp_keepalive='1'
+    uci set uhttpd.net4sats.error_page='/index.html'
+    uci add_list uhttpd.net4sats.listen_http='0.0.0.0:80'
+    uci add_list uhttpd.net4sats.listen_http='[::]:80'
+    uci commit uhttpd
+fi
+
+echo "Restarting rpcd..."
+/etc/init.d/rpcd restart
+
+echo "Restarting uhttpd..."
+/etc/init.d/uhttpd restart
+
+echo "net4sats admin panel installed. Access at http://$(uci get network.lan.ipaddr)/net4sats/"
+exit 0

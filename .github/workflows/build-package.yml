@@ -65,7 +65,7 @@ jobs:
         with:
           name: spa-dist
           path: dist/
-      - name: Build ipk
+      - name: Build configurationwizzard ipk (portal + admin bundled)
         run: |
           chmod +x packaging/build-ipk.sh
           packaging/build-ipk.sh \
@@ -74,6 +74,35 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PACKAGE_NAME }}_${{ needs.determine-versioning.outputs.package_version }}_${{ matrix.architecture }}.ipk
+          path: "*.ipk"
+
+  package-admin-ipk:
+    needs: [determine-versioning, build-spa]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - arm_cortex-a7
+          - mips_24kc
+          - mipsel_24kc
+          - x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: spa-dist
+          path: dist/
+      - name: Build net4sats-admin ipk (admin panel + rpcd only, no portal)
+        run: |
+          chmod +x packaging/build-ipk-admin.sh
+          packaging/build-ipk-admin.sh \
+            "${{ matrix.architecture }}" \
+            "${{ needs.determine-versioning.outputs.package_version }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: net4sats-admin_${{ needs.determine-versioning.outputs.package_version }}_${{ matrix.architecture }}.ipk
           path: "*.ipk"
 
   publish-metadata:
