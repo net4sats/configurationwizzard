@@ -63,7 +63,8 @@ tar -czf data.tar.gz -C "$DATA_DIR" .
 echo "2.0" > debian-binary
 
 OUTPUT="$REPO_ROOT/${PACKAGE_NAME}_${VERSION}_${ARCH}.ipk"
-ar -rc "$OUTPUT" debian-binary control.tar.gz data.tar.gz
+# OpenWrt opkg expects gzip-compressed tarball, not ar archive
+tar -czf "$OUTPUT" ./debian-binary ./control.tar.gz ./data.tar.gz
 
 SIZE=$(du -h "$OUTPUT" | cut -f1)
 echo "=== Built: $OUTPUT ($SIZE) ==="
