@@ -13,8 +13,8 @@ if ! uci -q get uhttpd.net4sats >/dev/null 2>&1; then
     uci set uhttpd.net4sats.max_requests='3'
     uci set uhttpd.net4sats.tcp_keepalive='1'
     uci set uhttpd.net4sats.error_page='/index.html'
-    uci add_list uhttpd.net4sats.listen_http='0.0.0.0:80'
-    uci add_list uhttpd.net4sats.listen_http='[::]:80'
+    uci add_list uhttpd.net4sats.listen_http='0.0.0.0:8080'
+    uci add_list uhttpd.net4sats.listen_http='[::]:8080'
     uci commit uhttpd
 fi
 
