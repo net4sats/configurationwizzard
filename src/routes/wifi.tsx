@@ -33,7 +33,7 @@ export default function Wifi() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const data = await ubusCall('wireless', 'status');
+      const data = await ubusCall('network.wireless', 'status');
       setRadios(data || {});
       setError('');
     } catch (err: any) {
@@ -75,7 +75,7 @@ export default function Wifi() {
       }
       // Commit and reload wireless
       await ubusCall('uci', 'commit', { config: 'wireless' });
-      await ubusCall('wireless', 'reload');
+      await ubusCall('network.wireless', 'reload');
 
       setSaveMsg('saved');
       setEditSsid(null);
@@ -169,8 +169,18 @@ export default function Wifi() {
               <span className="stat-value">{radio.config?.htmode || '—'}</span>
             </div>
 
-            {radio.interfaces?.map((iface) => (
-              <div key={iface.ifname} style={{ marginTop: '0.75rem' }}>
+            {radio.interfaces?.map((iface) => {
+              // network.wireless nests these under iface.config; the mock has
+              // them flat on iface — read defensively so both shapes work.
+              const cfg = iface.config || iface;
+              const section = iface.section || iface.ifname;
+              const ssid = cfg.ssid;
+              const mode = cfg.mode;
+              const encryption = cfg.encryption;
+              const hidden = cfg.hidden;
+              const network = cfg.network;
+              return (
+              <div key={section} style={{ marginTop: '0.75rem' }}>
                 <hr className="divider" />
                 <div
                   style={{
@@ -186,9 +196,9 @@ export default function Wifi() {
                       fontSize: 'var(--font-size-small)',
                     }}
                   >
-                    {iface.ssid || iface.ifname}
+                    {ssid || iface.ifname}
                   </span>
-                  <span className="badge badge-accent">{iface.mode}</span>
+                  <span className="badge badge-accent">{mode}</span>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">Interface</span>
@@ -197,21 +207,21 @@ export default function Wifi() {
                 <div className="stat-row">
                   <span className="stat-label">Encryption</span>
                   <span className="stat-value">
-                    {iface.encryption || 'None'}
+                    {encryption || 'None'}
                   </span>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">Hidden</span>
-                  <span className="stat-value">{iface.hidden ? 'Yes' : 'No'}</span>
+                  <span className="stat-value">{hidden ? 'Yes' : 'No'}</span>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">Network</span>
                   <span className="stat-value">
-                    {iface.network?.join(', ') || '—'}
+                    {network?.join(', ') || '—'}
                   </span>
                 </div>
 
-                {editSsid === iface.ifname ? (
+                {editSsid === section ? (
                   <div
                     className="flex flex-col gap-sm"
                     style={{ marginTop: '0.75rem' }}
@@ -265,13 +275,14 @@ export default function Wifi() {
                   <button
                     className="btn btn-secondary btn-sm"
                     style={{ marginTop: '0.6rem' }}
-                    onClick={() => startEdit(iface.ifname, iface.ssid)}
+                    onClick={() => startEdit(section, ssid)}
                   >
                     Edit
                   </button>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
