@@ -4,7 +4,7 @@ import { withBase } from '../lib/paths';
 import { navigate } from '../lib/router';
 import ParticleBg from '../components/particle-bg';
 
-export default function LoginPage() {
+export default function LoginPage({ onLoggedIn }: { onLoggedIn?: () => void }) {
   const mockMode = isMock();
   const [username, setUsername] = useState('root');
   const [password, setPassword] = useState('');
@@ -17,6 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(username, password);
+      onLoggedIn?.();
       navigate('dashboard');
     } catch (err: any) {
       setError(err.message === 'Invalid username or password'
