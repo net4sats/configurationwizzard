@@ -52,6 +52,7 @@ License: MIT
 Depends: tollgate-wrt, nodogsplash, luci, jq
 Provides: tollgate-captive-portal-site
 Conflicts: tollgate-captive-portal
+Replaces: nodogsplash
 Description: net4sats Configuration Wizard admin SPA and captive portal theme
 EOF
 

@@ -5,8 +5,8 @@ import { resolve } from 'path'
 const app = process.env.VITE_APP || 'admin'
 
 const inputs = {
-  admin: resolve(__dirname, 'admin.html'),
-  portal: resolve(__dirname, 'portal.html'),
+  admin: resolve(__dirname, 'index.html'),
+  portal: resolve(__dirname, 'splash.html'),
 }
 
 const bases = {

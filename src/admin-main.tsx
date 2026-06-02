@@ -1,5 +1,7 @@
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
+import './styles/variables.css';
+import './styles/admin.css';
 import { initRouter, useRoute, navigate } from './lib/router';
 import { checkSession, isLoggedIn, isMock } from './lib/ubus';
 import Layout from './components/layout';
@@ -56,7 +58,7 @@ function AdminApp() {
   }
 
   if (route === 'login' || !authed) {
-    return <LoginPage />;
+    return <LoginPage onLoggedIn={() => setAuthed(true)} />;
   }
 
   return <Layout />;

@@ -16,6 +16,7 @@ define Package/configurationwizzard
   DEPENDS:=+tollgate-wrt +nodogsplash +luci +jq
   PROVIDES:=tollgate-captive-portal-site
   CONFLICTS:=tollgate-captive-portal
+  REPLACES:=nodogsplash
   PKGARCH:=all
 endef
 
@@ -50,13 +51,13 @@ define Package/configurationwizzard/postinst
 
 if ! uci -q get uhttpd.net4sats >/dev/null 2>&1; then
     uci set uhttpd.net4sats=uhttpd
-    uci set uhttpd.net4sats.home='/www/net4sats'
+    uci set uhttpd.net4sats.home='/www'
     uci set uhttpd.net4sats.ubus_prefix='/ubus'
     uci set uhttpd.net4sats.script_timeout='60'
     uci set uhttpd.net4sats.network_timeout='30'
     uci set uhttpd.net4sats.max_requests='3'
     uci set uhttpd.net4sats.tcp_keepalive='1'
-    uci set uhttpd.net4sats.error_page='/index.html'
+    uci set uhttpd.net4sats.error_page='/net4sats/index.html'
     uci add_list uhttpd.net4sats.listen_http='0.0.0.0:80'
     uci add_list uhttpd.net4sats.listen_http='[::]:80'
     uci commit uhttpd
