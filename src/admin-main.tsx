@@ -1,5 +1,7 @@
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
+import './styles/variables.css';
+import './styles/base.css';
 import { initRouter, useRoute, navigate } from './lib/router';
 import { checkSession, isLoggedIn, isMock } from './lib/ubus';
 import Layout from './components/layout';
