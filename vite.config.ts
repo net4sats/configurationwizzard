@@ -6,7 +6,7 @@ const app = process.env.VITE_APP || 'admin'
 
 const inputs = {
   admin: resolve(__dirname, 'admin.html'),
-  portal: resolve(__dirname, 'portal.html'),
+  portal: resolve(__dirname, 'splash.html'),
 }
 
 const bases = {
