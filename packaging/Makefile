@@ -16,6 +16,7 @@ define Package/configurationwizzard
   DEPENDS:=+tollgate-wrt +nodogsplash +luci +jq
   PROVIDES:=tollgate-captive-portal-site
   CONFLICTS:=tollgate-captive-portal
+  REPLACES:=nodogsplash
   PKGARCH:=all
 endef
 
