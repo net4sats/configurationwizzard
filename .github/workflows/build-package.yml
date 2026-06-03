@@ -105,8 +105,70 @@ jobs:
           name: net4sats-admin_${{ needs.determine-versioning.outputs.package_version }}_${{ matrix.architecture }}.ipk
           path: "*.ipk"
 
+  # apk packaging goes through the OpenWrt SDK container: the SDK's apk-tools
+  # binary produces the OpenWrt-specific apk format, which we don't reimplement
+  # by hand the way build-ipk.sh wraps an ipk. The package is arch-independent
+  # (PKGARCH:=all), so a single SDK build yields one apk valid on all targets.
+  package-apk:
+    needs: [determine-versioning, build-spa]
+    runs-on: ubuntu-latest
+    container:
+      # apk is OpenWrt 25.12+. Any arch SDK works since the package is "all";
+      # bump this tag as newer SDKs are released.
+      image: openwrt/sdk:mediatek-filogic-25.12.0
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src-checkout
+      - uses: actions/download-artifact@v4
+        with:
+          name: spa-dist
+          path: spa-dist
+      - name: Stage SDK package tree
+        run: |
+          set -eu
+          STAGE=/builder/package/${PACKAGE_NAME}
+          mkdir -p "$STAGE/rpcd"
+          cp -r src-checkout/packaging/. "$STAGE/"
+          cp src-checkout/openwrt/rpcd/tollgate src-checkout/openwrt/rpcd/tollgate_acl.json "$STAGE/rpcd/"
+          cp -r spa-dist "$STAGE/dist"
+      - name: Configure SDK (apk)
+        run: |
+          cd /builder
+          make defconfig
+          {
+            echo "CONFIG_PACKAGE_${PACKAGE_NAME}=y"
+            echo "CONFIG_PACKAGE_nodogsplash=y"
+            echo "CONFIG_PACKAGE_luci=y"
+            echo "CONFIG_PACKAGE_jq=y"
+            echo "CONFIG_USE_APK=y"
+          } >> .config
+          make defconfig
+      - name: Compile package
+        run: |
+          cd /builder
+          env PACKAGE_VERSION="${{ needs.determine-versioning.outputs.package_version }}" \
+            make -j"$(nproc)" "package/${PACKAGE_NAME}/compile"
+      - name: Collect artifact
+        run: |
+          set -eu
+          PKG_PATH="$(find /builder/bin -type f -name "${PACKAGE_NAME}*.apk" | sort | head -n1)"
+          if [ -z "$PKG_PATH" ]; then
+            echo "No .apk package found" >&2
+            find /builder/bin -maxdepth 6 -type f | head -50
+            exit 1
+          fi
+          ls -lh "$PKG_PATH"
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
+          cp "$PKG_PATH" "$GITHUB_WORKSPACE/artifacts/${PACKAGE_NAME}_${{ needs.determine-versioning.outputs.package_version }}_all.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PACKAGE_NAME }}_${{ needs.determine-versioning.outputs.package_version }}_all.apk
+          path: artifacts/*.apk
+
   publish-metadata:
-    needs: [determine-versioning, package-ipk]
+    needs: [determine-versioning, package-ipk, package-apk]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -166,18 +228,19 @@ jobs:
           }
 
           : > manifest.jsonl
-          for file in ./artifacts/*.ipk; do
+          for file in ./artifacts/*.ipk ./artifacts/*.apk; do
             [ -f "$file" ] || continue
             filename=$(basename "$file")
-            arch=$(echo "$filename" | sed -E 's/.*_([^_]+)\.ipk/\1/')
+            ext="${filename##*.}"
+            arch=$(echo "$filename" | sed -E "s/.*_([^_]+)\.${ext}\$/\1/")
             echo "Uploading $filename..."
             if ! hash=$(upload_one "$file"); then
               echo "ERROR: blossom upload failed for $filename" >&2
               exit 1
             fi
             jq -cn \
-              --arg filename "$filename" --arg arch "$arch" --arg hash "$hash" \
-              '{filename:$filename, architecture:$arch, format:"ipk", compression:"none", hash:$hash, url:("'"$BLOSSOM_SERVER"'/" + $hash + ".ipk")}' \
+              --arg filename "$filename" --arg arch "$arch" --arg hash "$hash" --arg ext "$ext" \
+              '{filename:$filename, architecture:$arch, format:$ext, compression:"none", hash:$hash, url:("'"$BLOSSOM_SERVER"'/" + $hash + "." + $ext)}' \
               >> manifest.jsonl
             echo "  uploaded: $hash"
           done
@@ -197,9 +260,10 @@ jobs:
             arch=$(printf '%s' "$entry" | jq -r '.architecture')
             hash=$(printf '%s' "$entry" | jq -r '.hash')
             url=$(printf '%s' "$entry" | jq -r '.url')
+            format=$(printf '%s' "$entry" | jq -r '.format')
 
             nak event --sec "$NSEC_HEX" -k 1063 \
-              -c "net4sats Package: $PACKAGE_NAME for $arch" \
+              -c "net4sats Package: $PACKAGE_NAME for $arch ($format)" \
               --tag url="$url" \
               --tag m="application/octet-stream" \
               --tag x="$hash" \
@@ -210,7 +274,7 @@ jobs:
               --tag c="$RELEASE_CHANNEL" \
               --tag n="$PACKAGE_NAME" \
               --tag compression="none" \
-              --tag format="ipk" \
+              --tag format="$format" \
               < /dev/null \
               | jq -c . >> events.jsonl
           done < manifest.jsonl
@@ -230,4 +294,4 @@ jobs:
       - name: Build summary
         run: |
           echo "Published $(wc -l < events.jsonl) NIP-94 events across $(echo $RELAYS | wc -w) relays."
-          jq -r '"  \(.architecture) ipk: \(.url)"' manifest.jsonl
+          jq -r '"  \(.architecture) \(.format): \(.url)"' manifest.jsonl
