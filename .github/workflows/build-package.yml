@@ -17,7 +17,7 @@ jobs:
       package_version: ${{ steps.version.outputs.package_version }}
       release_channel: ${{ steps.version.outputs.release_channel }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: version
         run: |
           if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
@@ -36,13 +36,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: determine-versioning
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
       - run: npm install
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: spa-dist
           path: dist/
@@ -53,8 +53,8 @@ jobs:
     needs: [determine-versioning, build-spa]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           name: spa-dist
           path: dist/
@@ -63,7 +63,7 @@ jobs:
           chmod +x packaging/build-ipk.sh
           packaging/build-ipk.sh \
             "${{ needs.determine-versioning.outputs.package_version }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ env.PACKAGE_NAME }}_${{ needs.determine-versioning.outputs.package_version }}_all.ipk
           path: "*.ipk"
@@ -72,8 +72,8 @@ jobs:
     needs: [determine-versioning, build-spa]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           name: spa-dist
           path: dist/
@@ -82,7 +82,7 @@ jobs:
           chmod +x packaging/build-ipk-admin.sh
           packaging/build-ipk-admin.sh \
             "${{ needs.determine-versioning.outputs.package_version }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: net4sats-admin_${{ needs.determine-versioning.outputs.package_version }}_all.ipk
           path: "*.ipk"
@@ -100,10 +100,10 @@ jobs:
       image: openwrt/sdk:mediatek-filogic-25.12.0
       options: --user root
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           path: src-checkout
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: spa-dist
           path: spa-dist
@@ -144,7 +144,7 @@ jobs:
           ls -lh "$PKG_PATH"
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
           cp "$PKG_PATH" "$GITHUB_WORKSPACE/artifacts/${PACKAGE_NAME}_${{ needs.determine-versioning.outputs.package_version }}_all.apk"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ env.PACKAGE_NAME }}_${{ needs.determine-versioning.outputs.package_version }}_all.apk
           path: artifacts/*.apk
@@ -175,7 +175,7 @@ jobs:
           nak --version
 
       - name: Download all package artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: "${{ env.PACKAGE_NAME }}_*"
           path: ./artifacts
