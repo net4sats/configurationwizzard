@@ -3,16 +3,38 @@
 Unresolved captive portal + admin issues.
 
 Reference: https://github.com/net4sats/configurationwizzard/issues/9
+PR: https://github.com/net4sats/configurationwizzard/pull/10
 
 ## Overview
 
-Four bugs identified during on-device testing, plus a NoDogSplash port
-conflict discovered during deployment, plus two login issues found by
-@Origami74. Fixes span three repos:
+Nine bugs fixed in PR #10, two remaining bugs + one feature request still
+open. Fixes span three repos:
 
 1. **`configurationwizzard`** — frontend SPA + packaging
 2. **`gonuts-tollgate`** — Cashu wallet library (BOLT11 handling)
 3. **`tollgate-module-basic-go`** — Go backend daemon (packaging)
+
+### Fixed in PR #10 (Bugs 1–9)
+
+| Bug | Description | Status |
+|-----|-------------|--------|
+| 1 | Invoice generation fails (BOLT11 decode) | Fixed |
+| 2 | `profit_share` / `devsplit` setting errors | Fixed |
+| 3 | Draining wallet shows no funds | Fixed |
+| 4 | No accepted mints displayed | Fixed |
+| 5 | NoDogSplash port conflict (discovered during deployment) | Fixed |
+| 6 | Empty password rejected by login form | Fixed |
+| 7 | Wrong password gives confusing error message | Fixed |
+| 8 | ubusCall() doesn't handle OpenWrt 25 error format | Fixed |
+| 9 | Test mint Lightning flow blocked by lnbc check | Fixed |
+
+### Still Open
+
+| ID | Description | Type |
+|----|-------------|------|
+| A | Lightning/Cashu tab labels white-on-white | Bug |
+| B | PWA install instructions don't work in captive portal webview | Bug |
+| C | WiFi scanning / connecting to upstream | Feature |
 
 ---
 
@@ -204,9 +226,9 @@ Tested on @Origami74's router (OpenWrt 25.12.2, `192.168.1.1`) and found:
       response to "Invalid username or password" instead of the generic error
 - [x] Wrapped `res.json()` in try/catch for non-JSON responses
 
-### Fix (still needed — Bug 8)
+### Fix (Bug 8 — already applied)
 
-- [ ] `src/lib/ubus.ts` — in `ubusCall()`, detect OpenWrt 25 JSON-RPC error
+- [x] `src/lib/ubus.ts` — in `ubusCall()`, detect OpenWrt 25 JSON-RPC error
       objects (`json.error`) and map `-32002` to SESSION_EXPIRED before checking
       `json.result`
 
@@ -239,12 +261,12 @@ Relax the `lnbc` check to be non-blocking for the Lightning invoice flow:
 
 ### Checklist
 
-- [ ] `src/routes/captive-portal.tsx` — refactor `handleGenerateInvoice` to allow
+- [x] `src/routes/captive-portal.tsx` — refactor `handleGenerateInvoice` to allow
       non-lnbc invoices, add "processing" state for test mints
-- [ ] Build verification
-- [ ] Deploy to routers
-- [ ] Phone test: Lightning tab → "Processing payment..." → success
-- [ ] Push to PR #10
+- [x] Build verification
+- [x] Deploy to routers
+- [x] Phone test: Lightning tab → "Processing payment..." → success
+- [x] Push to PR #10
 
 ---
 
@@ -329,9 +351,13 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Bug 8: ubusCall() OpenWrt 25 error format handling
 - [x] Push Bug 8 fix to PR branch
 - [x] Build verification after Bug 8 fix
-- [ ] Bug 9: Relax lnbc check for test mint Lightning flow
-- [ ] Build verification after Bug 9 fix
-- [ ] Push Bug 9 fix to PR branch
+- [x] Bug 9: Relax lnbc check for test mint Lightning flow
+- [x] Build verification after Bug 9 fix
+- [x] Push Bug 9 fix to PR branch
+- [ ] Bug A: Fix white-on-white tab labels CSS
+- [ ] Bug B: PWA/CNA — link manifest, register SW, detect CNA webview
+- [ ] Build verification after Bug A + B
+- [ ] Push Bug A + B to PR branch
 
 ### gonuts-tollgate (OpenTollGate org fork)
 
@@ -367,13 +393,108 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Requested reviews on PR #10 (Origami74, Amperstrand)
 - [x] Requested reviews on PR #158 (Origami74, Amperstrand)
 - [x] Comment on issue #9 about pre-existing /whoami failure
-- [ ] Verify Lightning invoice flow with testnut (Bug 9 fix)
+- [x] Verify Lightning invoice flow with testnut (Bug 9 fix) — phone test passed
 - [ ] Verify Cashu payment flow (WiFi client test)
 - [ ] Verify admin settings (profit_share, drain, mints)
+- [ ] Verify Bug A fix (tab labels visible on phone)
+- [ ] Verify Bug B fix (PWA modal shows CNA-specific instructions)
 
 ---
 
 ## Roadmap (post-issue-9)
+
+### Remaining from issue #9 (PR #10 continuation)
+
+#### Bug A: Lightning/Cashu tab labels white-on-white
+
+> Captive portal tab labels are unreadable against the white background.
+
+**Root cause:** `.tollgate-captive-portal-tabs-tab` inherits `color: var(--text)`
+= `#fff` from `:root` (dark admin theme). The tabs have `background: #fff`,
+producing white-on-white text.
+
+**Fix:** Add explicit `color: #0a0a0a` to `.tollgate-captive-portal-tabs-tab`
+in `src/styles/base.css:100-110`.
+
+**Checklist:**
+- [ ] Add `color: #0a0a0a` to `.tollgate-captive-portal-tabs-tab` in base.css
+- [ ] Build verification
+- [ ] Deploy and verify on phone
+
+---
+
+#### Bug B: PWA install instructions don't work in captive portal webview
+
+> The Captive Network Assistant (CNA) mini-browser can't install PWAs. The
+> instructions should detect CNA and prompt the user to open in a real browser
+> first.
+
+**Root cause (2 problems):**
+
+1. **`manifest.json` is never linked.** Neither `index.html` (admin) nor
+   `splash.html` (portal) has `<link rel="manifest">`. The manifest file exists
+   in the build output but browsers never discover it, so
+   `beforeinstallprompt` never fires.
+
+2. **CNA webviews don't support PWA install.** Android/iOS captive portal
+   browsers are restricted — no `beforeinstallprompt`, no service worker
+   registration, limited navigation.
+
+**Fix:**
+
+1. Add `<link rel="manifest" href="/manifest.json">` to `splash.html` and
+   `index.html`
+2. Add service worker registration script to both HTML files
+3. In `pwa-modal.tsx`: detect CNA webview via user-agent:
+   ```ts
+   const isCNA = /CaptiveNetworkAssistant|com.android.captiveportallogin/i.test(navigator.userAgent);
+   ```
+4. Show CNA-specific instructions: "Open in browser first" with a link that
+   opens `http://<current-host>:2050` in the real browser
+
+**Files:** `splash.html`, `index.html`, `src/components/pwa-modal.tsx`
+
+**Checklist:**
+- [ ] Add `<link rel="manifest">` to `splash.html` and `index.html`
+- [ ] Add SW registration script to both HTML files
+- [ ] Add CNA detection in `pwa-modal.tsx`
+- [ ] Add CNA-specific instructions (open in browser)
+- [ ] Build verification
+- [ ] Deploy and verify on phone (CNA) and desktop (normal browser)
+
+---
+
+#### Feature C: WiFi scanning / connecting to upstream (separate PR)
+
+> UI to scan for and connect to upstream networks.
+
+**Existing infrastructure:**
+- Backend ubus methods: `tollgate.upstream_scan`, `tollgate.upstream_connect`,
+  `tollgate.upstream_list`, `tollgate.upstream_remove` — all implemented in Go
+- Mock data in `ubus.mock.ts` — all 4 methods mocked
+- Admin route exists: `/wifi` → `src/routes/wifi.tsx` (currently shows local
+  radio interfaces only)
+
+**Plan:** Add "Upstream Networks" section at the bottom of `wifi.tsx`:
+
+1. **Scan button** → `tollgate.upstream_scan` → list networks (SSID, signal,
+   encryption, BSSID)
+2. **Connect button** per network → password input → `tollgate.upstream_connect`
+3. **Configured upstreams** → `tollgate.upstream_list` → active connections
+4. **Remove button** per upstream → `tollgate.upstream_remove`
+
+**Files:** `src/routes/wifi.tsx` (extend), `src/styles/admin.css` (new styles)
+
+**Checklist:**
+- [ ] Add upstream scan section to `wifi.tsx`
+- [ ] Add connect UI with password input
+- [ ] Add configured upstreams list with remove
+- [ ] Style new section in `admin.css`
+- [ ] Build verification
+- [ ] Test with mock data
+- [ ] Open separate PR
+
+---
 
 ### gonuts-tollgate org fork + tollgate-module-basic-go
 
