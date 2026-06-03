@@ -37,6 +37,14 @@ export async function ubusCall(
     }),
   });
   const json = await res.json();
+  if (json.error) {
+    if (json.error.code === -32002) {
+      localStorage.removeItem(SESSION_KEY);
+      sessionId = '00000000000000000000000000000000';
+      throw new Error('SESSION_EXPIRED');
+    }
+    throw new Error(`ubus error: ${json.error.message || 'unknown'}`);
+  }
   if (!json.result) throw new Error('No result from ubus');
   if (json.result[0] !== 0) {
     if (json.result[0] === 6) {
