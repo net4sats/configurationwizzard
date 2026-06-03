@@ -7,10 +7,16 @@
     <meta name="theme-color" content="#111" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
     <title>net4sats</title>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/admin-main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
+    </script>
   </body>
 </html>

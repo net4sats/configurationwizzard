@@ -107,6 +107,7 @@ button {
   cursor: pointer;
   transition: opacity 0.15s;
   font-family: inherit;
+  color: #0a0a0a;
 }
 
 .tollgate-captive-portal-tabs-tab-cashu {
