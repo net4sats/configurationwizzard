@@ -41,8 +41,8 @@ interface ConfiguredUpstream {
 
 function signalQuality(dbm: number): { label: string; color: string } {
   if (dbm >= -50) return { label: 'Excellent', color: 'var(--success)' };
-  if (dbm >= -60) return { label: 'Good', color: '#7bc67b' };
-  if (dbm >= -70) return { label: 'Fair', color: '#d4a843' };
+  if (dbm >= -60) return { label: 'Good', color: '#4da6ff' };
+  if (dbm >= -70) return { label: 'Fair', color: '#e88a3a' };
   return { label: 'Weak', color: 'var(--error)' };
 }
 
