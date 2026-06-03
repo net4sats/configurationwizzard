@@ -239,8 +239,8 @@ at line 42 is never reached.
 
 - [ ] `src/lib/ubus.ts` — add `json.error` check before `json.result` check in
       `ubusCall()`, map `error.code === -32002` to SESSION_EXPIRED
-- [ ] Verify on OpenWrt 25 router (192.168.1.1)
-- [ ] Verify on OpenWrt 24 router (10.47.41.1) — regression test
+- [x] Verify on OpenWrt 25 router (192.168.1.1)
+- [x] Verify on OpenWrt 24 router (10.47.41.1) — regression test
 
 ---
 
@@ -268,7 +268,7 @@ Create `tests/browser/admin-login.spec.mjs`:
 ### Router verification
 
 - [x] E2E script passes on OpenWrt 24.10.4 (37 passed, 0 failed)
-- [ ] E2E script passes on OpenWrt 25.12.2 (Arjen's router at 192.168.1.1)
+- [x] E2E script passes on OpenWrt 25.12.2 (35 passed, 1 failed pre-existing, 6 skipped)
 
 ---
 
@@ -290,11 +290,11 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Bug 7: Clear "Invalid credentials" error for wrong password
 - [x] Push login fixes to PR branch
 - [x] Final build verification
-- [ ] Bug 8: ubusCall() OpenWrt 25 error format handling
-- [ ] Push Bug 8 fix to PR branch
-- [ ] Build verification after Bug 8 fix
+- [x] Bug 8: ubusCall() OpenWrt 25 error format handling
+- [x] Push Bug 8 fix to PR branch
+- [x] Build verification after Bug 8 fix
 
-### gonuts-tollgate (upstream coordination)
+### gonuts-tollgate (OpenTollGate org fork)
 
 - [x] Fork `Amperstrand/gonuts-tollgate` to `net4sats/gonuts-tollgate`
 - [x] Patch `wallet/wallet.go` RequestMint — non-fatal BOLT11 decode
@@ -304,14 +304,19 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Close our PR #2 (superseded by @Amperstrand's fix)
 - [x] Request @Amperstrand merge `9b2b843` into main + tag `v0.7.1`
 - [x] Clean up net4sats fork (delete branch + tag)
+- [x] Fork `Amperstrand/gonuts-tollgate` to `OpenTollGate/gonuts-tollgate` (org fork)
+- [x] Cherry-pick `9b2b843` into main on the org fork
+- [x] Tag `v0.7.1` on the org fork
+- [x] Preserve `feature/v2-keyset-ids` branch for future reference
 
 ### tollgate-module-basic-go (separate commit/PR)
 
 - [x] Update `src/go.mod` to gonuts-tollgate `v0.7.1` (currently net4sats fork)
 - [x] Fix `99-tollgate-setup` nodogsplash gatewayport → 2050 + allow rule
 - [x] Rebuild `tollgate-wrt` binary for `aarch64_cortex-a53`
-- [ ] Switch to `Amperstrand/gonuts-tollgate v0.7.1` once tagged upstream
-- [ ] Open PR to `OpenTollGate/tollgate-module-basic-go`
+- [x] Switch `src/go.mod` replace to `OpenTollGate/gonuts-tollgate v0.7.1`
+- [x] Rebuild binary with org fork dependency
+- [x] Open PR to `OpenTollGate/tollgate-module-basic-go`
 
 ### Router deployment
 
@@ -325,11 +330,15 @@ Create `tests/browser/admin-login.spec.mjs`:
 
 ## Roadmap (post-issue-9)
 
-### Upstream coordination (blocked on @Amperstrand)
+### gonuts-tollgate org fork + tollgate-module-basic-go
 
-- [ ] @Amperstrand cherry-picks `9b2b843` into `main` + tags `v0.7.1` in `gonuts-tollgate`
-- [ ] Update `tollgate-module-basic-go/src/go.mod` replace to `Amperstrand/gonuts-tollgate v0.7.1`
-- [ ] Open PR to `OpenTollGate/tollgate-module-basic-go` with go.mod + nodogsplash port fix
+- [x] Fork `Amperstrand/gonuts-tollgate` → `OpenTollGate/gonuts-tollgate`
+- [x] Cherry-pick `9b2b843` into main + tag `v0.7.1`
+- [x] Update `tollgate-module-basic-go/src/go.mod` replace to `OpenTollGate/gonuts-tollgate v0.7.1`
+- [x] Rebuild tollgate-wrt binary
+- [x] Open PR #158 to `OpenTollGate/tollgate-module-basic-go` with go.mod + nodogsplash port fix
+- [x] Comment on issue #156 noting fork location
+- [ ] Archive/delete `net4sats/gonuts-tollgate` personal fork (needs browser auth)
 
 ### Ethernet client testing
 
