@@ -162,7 +162,7 @@ have no password set.
 
 ### Fix
 
-- [ ] `src/routes/login.tsx` — remove `!password` from disabled check, allow
+- [x] `src/routes/login.tsx` — remove `!password` from disabled check, allow
       empty password submission
 
 ---
@@ -174,16 +174,101 @@ have no password set.
 
 Reported by @Origami74 on issue #9.
 
-### Root cause
+### Root cause (initial hypothesis)
 
 `src/lib/ubus.ts:81-83` checks `json.result[0] !== 0` during login, but ubus
 returns error code `2` (not `0`) for invalid credentials. The generic error
 path produces "ubus error 2: unknown" which is confusing.
 
+### Root cause (actual — discovered via testing on Arjen's router)
+
+Tested on @Origami74's router (OpenWrt 25.12.2, `192.168.1.1`) and found:
+
+1. **Root has no password set** (`root::` in `/etc/shadow`). When no password
+   is set, `session.login` accepts ANY password — wrong credentials never fail.
+   The "ubus error 2" Arjen saw was NOT from login failure.
+
+2. **OpenWrt 25 returns different error format** for session expiry:
+   - OpenWrt 24: `{"result":[6]}` (result array)
+   - OpenWrt 25: `{"error":{"code":-32002,"message":"Access denied"}}` (JSON-RPC error object)
+
+3. **`ubusCall()` has a gap on OpenWrt 25**: When a session expires, `json.result`
+   is `undefined` (no `result` property), so line 40 throws "No result from ubus"
+   instead of "SESSION_EXPIRED". The user sees a confusing error instead of being
+   redirected to login. This is likely the real source of Arjen's "ubus error" —
+   a post-login `ubusCall()` that hit an expired/invalid session on OpenWrt 25.
+
+### Fix (already applied)
+
+- [x] `src/lib/ubus.ts` — in the `login()` function, map any non-zero ubus
+      response to "Invalid username or password" instead of the generic error
+- [x] Wrapped `res.json()` in try/catch for non-JSON responses
+
+### Fix (still needed — Bug 8)
+
+- [ ] `src/lib/ubus.ts` — in `ubusCall()`, detect OpenWrt 25 JSON-RPC error
+      objects (`json.error`) and map `-32002` to SESSION_EXPIRED before checking
+      `json.result`
+
+---
+
+## Bug 8: ubusCall() doesn't handle OpenWrt 25 error format
+
+> Post-login ubus calls fail with "No result from ubus" instead of redirecting
+> to login when session expires on OpenWrt 25.
+
+Discovered during testing on @Origami74's router.
+
+### Root cause
+
+OpenWrt 25 returns JSON-RPC error objects for permission failures:
+```json
+{"error":{"code":-32002,"message":"Access denied"}}
+```
+
+While OpenWrt 24 returns result arrays:
+```json
+{"result":[6]}
+```
+
+`ubusCall()` at `src/lib/ubus.ts:40` checks `!json.result` first, which throws
+"No result from ubus" on OpenWrt 25 — the `result[0] === 6` session expiry check
+at line 42 is never reached.
+
 ### Fix
 
-- [ ] `src/lib/ubus.ts` — in the `login()` function, map any non-zero ubus
-      response to "Invalid username or password" instead of the generic error
+- [ ] `src/lib/ubus.ts` — add `json.error` check before `json.result` check in
+      `ubusCall()`, map `error.code === -32002` to SESSION_EXPIRED
+- [ ] Verify on OpenWrt 25 router (192.168.1.1)
+- [ ] Verify on OpenWrt 24 router (10.47.41.1) — regression test
+
+---
+
+## Test automation (physical-router-test-automation)
+
+### Bash E2E (Phase 6: Login/Auth)
+
+Add login/auth tests to `scripts/test-configwizzard-e2e.sh`:
+
+- [x] Test empty password login via ubus (Bug 6 backend validation)
+- [x] Test wrong password returns ubus error code 6 (Bug 7 backend validation)
+- [x] Restore router password state after tests
+- [x] Auto-detect curl vs wget on router (BusyBox compatibility)
+- [x] Check SPA JS bundle for disabled button pattern (Bug 6 SPA)
+
+### Playwright browser test
+
+Create `tests/browser/admin-login.spec.mjs`:
+
+- [x] Login page renders with enabled Sign In button
+- [x] Wrong password shows "Invalid credentials" (no raw ubus error)
+- [x] Empty password field leaves Sign In button enabled (Bug 6)
+- [x] Add project to `tests/playwright.config.mjs`
+
+### Router verification
+
+- [x] E2E script passes on OpenWrt 24.10.4 (37 passed, 0 failed)
+- [ ] E2E script passes on OpenWrt 25.12.2 (Arjen's router at 192.168.1.1)
 
 ---
 
@@ -201,10 +286,13 @@ path produces "ubus error 2: unknown" which is confusing.
 - [x] Bug 5: Fix postinst / uci-defaults / Makefile for nodogsplash port 2050
 - [x] Bug 1 error message: improve wording for non-Lightning mints
 - [x] Push updates to PR branch
-- [ ] Bug 6: Allow empty password in login form
-- [ ] Bug 7: Clear "Invalid credentials" error for wrong password
-- [ ] Push login fixes to PR branch
-- [ ] Final build verification
+- [x] Bug 6: Allow empty password in login form
+- [x] Bug 7: Clear "Invalid credentials" error for wrong password
+- [x] Push login fixes to PR branch
+- [x] Final build verification
+- [ ] Bug 8: ubusCall() OpenWrt 25 error format handling
+- [ ] Push Bug 8 fix to PR branch
+- [ ] Build verification after Bug 8 fix
 
 ### gonuts-tollgate (upstream coordination)
 
