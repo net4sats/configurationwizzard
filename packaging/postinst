@@ -23,6 +23,14 @@ echo "Restarting rpcd..."
 echo "Restarting uhttpd..."
 /etc/init.d/uhttpd restart
 
+# Point NoDogSplash at the net4sats captive portal. tollgate-wrt makes
+# /etc/nodogsplash/htdocs a symlink to its own portal dir; repoint it at ours.
+if [ -d /etc/tollgate/net4sats-captive-portal-site ]; then
+    echo "Pointing NoDogSplash htdocs at net4sats captive portal..."
+    rm -rf /etc/nodogsplash/htdocs
+    ln -s /etc/tollgate/net4sats-captive-portal-site /etc/nodogsplash/htdocs
+fi
+
 echo "Restarting NoDogSplash..."
 /etc/init.d/nodogsplash restart 2>/dev/null || true
 

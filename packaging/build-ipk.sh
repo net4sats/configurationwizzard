@@ -1,8 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-ARCH="${1:-aarch64_cortex-a53}"
-VERSION="${2:-$(jq -r .version package.json)}"
+# The package is arch-independent (prebuilt SPA + shell rpcd + JSON), so it is
+# built once as Architecture: all and installs on every target. (A leading
+# arch argument is still accepted and ignored for backwards compatibility.)
+case "${1:-}" in
+    aarch64_*|arm_*|mips_*|mipsel_*|x86_64|all) shift ;;
+esac
+VERSION="${1:-$(jq -r .version package.json)}"
+ARCH="all"
 PACKAGE_NAME="configurationwizzard"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -29,8 +35,12 @@ mkdir -p "$CTRL_DIR" "$DATA_DIR"
 mkdir -p "$DATA_DIR/www/net4sats"
 cp -r "$BUILD_DIR/admin/." "$DATA_DIR/www/net4sats/"
 
-mkdir -p "$DATA_DIR/etc/nodogsplash/htdocs"
-cp -r "$BUILD_DIR/portal/." "$DATA_DIR/etc/nodogsplash/htdocs/"
+# Ship the captive portal in our own directory; postinst repoints the
+# NoDogSplash htdocs symlink at it (see packaging/postinst). This avoids
+# fighting tollgate-wrt over /etc/nodogsplash/htdocs (a symlink it owns) and
+# the files under /etc/tollgate/tollgate-captive-portal-site (which it owns).
+mkdir -p "$DATA_DIR/etc/tollgate/net4sats-captive-portal-site"
+cp -r "$BUILD_DIR/portal/." "$DATA_DIR/etc/tollgate/net4sats-captive-portal-site/"
 
 mkdir -p "$DATA_DIR/usr/libexec/rpcd"
 cp "$REPO_ROOT/openwrt/rpcd/tollgate" "$DATA_DIR/usr/libexec/rpcd/tollgate"

@@ -1,11 +1,39 @@
+# OpenWrt SDK recipe for the net4sats configuration wizard.
+#
+# This package ships a *prebuilt* Preact SPA (admin + captive portal) plus an
+# rpcd plugin — there is nothing to cross-compile. The SDK is used only to
+# assemble a properly-formatted package (ipk on 24.10.x, apk on 25.12.x).
+#
+# build-sdk-package.sh (and the CI apk job) stage the following next to this
+# Makefile before invoking the SDK, and the install recipe reads them via
+# $(PKG_MAKEFILE_DIR):
+#   dist/admin/, dist/portal/   prebuilt SPA (npm run build)
+#   rpcd/tollgate, rpcd/*.json  rpcd plugin + ACL (from openwrt/rpcd/)
+#   files/...                   uci-defaults etc. (from packaging/files/)
+PKG_MAKEFILE_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=configurationwizzard
-PKG_VERSION:=$(shell cat ../package.json | jq -r '.version')
-PKG_RELEASE:=1
 
-PKG_MAINTAINER:=net4sats
+# PACKAGE_VERSION is supplied by CI / build-sdk-package.sh; fall back to a
+# placeholder for ad-hoc SDK builds. apk-tools is strict about version
+# syntax, so normalise it when building the apk format.
+DISPLAY_VERSION:=$(if $(strip $(PACKAGE_VERSION)),$(PACKAGE_VERSION),0.0.0)
+ifeq ($(CONFIG_USE_APK),y)
+PKG_VERSION:=$(shell sh "$(PKG_MAKEFILE_DIR)normalize-apk-version.sh" "$(DISPLAY_VERSION)")
+else
+PKG_VERSION:=$(DISPLAY_VERSION)
+PKG_RELEASE:=1
+endif
+
+PKG_MAINTAINER:=net4sats <dev@net4sats.com>
 PKG_LICENSE:=MIT
+
+# Allow overwriting files owned by other packages (nodogsplash ships its own
+# /etc/nodogsplash/htdocs/splash.html). On ipk this pairs with REPLACES below;
+# on apk this flag is what authorises the overwrite.
+PKG_FLAGS:=overwrite
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -26,24 +54,28 @@ define Package/configurationwizzard/description
   admin panel on /net4sats/ and captive portal on NoDogSplash.
 endef
 
+# Nothing to compile — the SPA is prebuilt and staged.
 define Build/Compile
 endef
 
 define Package/configurationwizzard/install
 	$(INSTALL_DIR) $(1)/www/net4sats
-	$(CP) ./dist/admin/* $(1)/www/net4sats/
+	$(CP) $(PKG_MAKEFILE_DIR)dist/admin/* $(1)/www/net4sats/
 
-	$(INSTALL_DIR) $(1)/etc/nodogsplash/htdocs
-	$(CP) ./dist/portal/* $(1)/etc/nodogsplash/htdocs/
+	# Ship the captive portal in our own directory; postinst repoints the
+	# NoDogSplash htdocs symlink at it. This avoids fighting tollgate-wrt over
+	# the htdocs symlink and the files under its tollgate-captive-portal-site.
+	$(INSTALL_DIR) $(1)/etc/tollgate/net4sats-captive-portal-site
+	$(CP) $(PKG_MAKEFILE_DIR)dist/portal/* $(1)/etc/tollgate/net4sats-captive-portal-site/
 
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd
-	$(INSTALL_BIN) ./openwrt/rpcd/tollgate $(1)/usr/libexec/rpcd/tollgate
+	$(INSTALL_BIN) $(PKG_MAKEFILE_DIR)rpcd/tollgate $(1)/usr/libexec/rpcd/tollgate
 
 	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
-	$(INSTALL_CONF) ./openwrt/rpcd/tollgate_acl.json $(1)/usr/share/rpcd/acl.d/tollgate.json
+	$(INSTALL_CONF) $(PKG_MAKEFILE_DIR)rpcd/tollgate_acl.json $(1)/usr/share/rpcd/acl.d/tollgate.json
 
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
-	$(INSTALL_BIN) ./packaging/files/etc/uci-defaults/91-configurationwizzard-setup $(1)/etc/uci-defaults/91-configurationwizzard-setup
+	$(INSTALL_BIN) $(PKG_MAKEFILE_DIR)files/etc/uci-defaults/91-configurationwizzard-setup $(1)/etc/uci-defaults/91-configurationwizzard-setup
 endef
 
 define Package/configurationwizzard/postinst
@@ -65,6 +97,14 @@ fi
 
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
+
+# Point NoDogSplash at the net4sats captive portal (repoint the htdocs symlink
+# that tollgate-wrt manages at our portal directory).
+if [ -d /etc/tollgate/net4sats-captive-portal-site ]; then
+    rm -rf /etc/nodogsplash/htdocs
+    ln -s /etc/tollgate/net4sats-captive-portal-site /etc/nodogsplash/htdocs
+fi
+
 /etc/init.d/nodogsplash restart 2>/dev/null || true
 endef
 
