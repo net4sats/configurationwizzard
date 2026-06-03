@@ -35,8 +35,12 @@ mkdir -p "$CTRL_DIR" "$DATA_DIR"
 mkdir -p "$DATA_DIR/www/net4sats"
 cp -r "$BUILD_DIR/admin/." "$DATA_DIR/www/net4sats/"
 
-mkdir -p "$DATA_DIR/etc/nodogsplash/htdocs"
-cp -r "$BUILD_DIR/portal/." "$DATA_DIR/etc/nodogsplash/htdocs/"
+# Ship the captive portal in our own directory; postinst repoints the
+# NoDogSplash htdocs symlink at it (see packaging/postinst). This avoids
+# fighting tollgate-wrt over /etc/nodogsplash/htdocs (a symlink it owns) and
+# the files under /etc/tollgate/tollgate-captive-portal-site (which it owns).
+mkdir -p "$DATA_DIR/etc/tollgate/net4sats-captive-portal-site"
+cp -r "$BUILD_DIR/portal/." "$DATA_DIR/etc/tollgate/net4sats-captive-portal-site/"
 
 mkdir -p "$DATA_DIR/usr/libexec/rpcd"
 cp "$REPO_ROOT/openwrt/rpcd/tollgate" "$DATA_DIR/usr/libexec/rpcd/tollgate"

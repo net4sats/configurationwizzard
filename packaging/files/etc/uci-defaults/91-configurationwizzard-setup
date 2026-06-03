@@ -16,6 +16,15 @@ fi
 
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
+
+# Point NoDogSplash at the net4sats captive portal. Runs after tollgate-wrt's
+# 90-tollgate-captive-portal-symlink, repointing htdocs from the stock portal
+# dir to ours.
+if [ -d /etc/tollgate/net4sats-captive-portal-site ]; then
+    rm -rf /etc/nodogsplash/htdocs
+    ln -s /etc/tollgate/net4sats-captive-portal-site /etc/nodogsplash/htdocs
+fi
+
 /etc/init.d/nodogsplash restart 2>/dev/null || true
 
 touch /etc/configurationwizzard-setup-done

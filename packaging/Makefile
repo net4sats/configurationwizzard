@@ -62,12 +62,11 @@ define Package/configurationwizzard/install
 	$(INSTALL_DIR) $(1)/www/net4sats
 	$(CP) $(PKG_MAKEFILE_DIR)dist/admin/* $(1)/www/net4sats/
 
-	# tollgate-wrt makes /etc/nodogsplash/htdocs a symlink to this directory.
-	# opkg happily writes the portal through that symlink, but apk-tools does
-	# not, so install straight to the canonical location. PKG_FLAGS:=overwrite
-	# authorises replacing the base tollgate-captive-portal-site files.
-	$(INSTALL_DIR) $(1)/etc/tollgate/tollgate-captive-portal-site
-	$(CP) $(PKG_MAKEFILE_DIR)dist/portal/* $(1)/etc/tollgate/tollgate-captive-portal-site/
+	# Ship the captive portal in our own directory; postinst repoints the
+	# NoDogSplash htdocs symlink at it. This avoids fighting tollgate-wrt over
+	# the htdocs symlink and the files under its tollgate-captive-portal-site.
+	$(INSTALL_DIR) $(1)/etc/tollgate/net4sats-captive-portal-site
+	$(CP) $(PKG_MAKEFILE_DIR)dist/portal/* $(1)/etc/tollgate/net4sats-captive-portal-site/
 
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd
 	$(INSTALL_BIN) $(PKG_MAKEFILE_DIR)rpcd/tollgate $(1)/usr/libexec/rpcd/tollgate
@@ -98,6 +97,14 @@ fi
 
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
+
+# Point NoDogSplash at the net4sats captive portal (repoint the htdocs symlink
+# that tollgate-wrt manages at our portal directory).
+if [ -d /etc/tollgate/net4sats-captive-portal-site ]; then
+    rm -rf /etc/nodogsplash/htdocs
+    ln -s /etc/tollgate/net4sats-captive-portal-site /etc/nodogsplash/htdocs
+fi
+
 /etc/init.d/nodogsplash restart 2>/dev/null || true
 endef
 

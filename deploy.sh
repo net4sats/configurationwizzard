@@ -12,8 +12,10 @@ ssh "$REMOTE_USER@$ROUTER" "mkdir -p /www/net4sats"
 scp -r dist/admin/. "$REMOTE_USER@$ROUTER:/www/net4sats/"
 
 echo "Deploying captive portal to $ROUTER..."
-ssh "$REMOTE_USER@$ROUTER" "mkdir -p /etc/nodogsplash/htdocs"
-scp -r dist/portal/. "$REMOTE_USER@$ROUTER:/etc/nodogsplash/htdocs/"
+ssh "$REMOTE_USER@$ROUTER" "mkdir -p /etc/tollgate/net4sats-captive-portal-site"
+scp -r dist/portal/. "$REMOTE_USER@$ROUTER:/etc/tollgate/net4sats-captive-portal-site/"
+# Repoint the NoDogSplash htdocs symlink (managed by tollgate-wrt) at our portal.
+ssh "$REMOTE_USER@$ROUTER" "rm -rf /etc/nodogsplash/htdocs && ln -s /etc/tollgate/net4sats-captive-portal-site /etc/nodogsplash/htdocs"
 
 echo "Installing rpcd plugin..."
 ssh "$REMOTE_USER@$ROUTER" "mkdir -p /usr/libexec/rpcd /usr/share/rpcd/acl.d"
