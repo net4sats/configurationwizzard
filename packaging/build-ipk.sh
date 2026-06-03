@@ -1,8 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-ARCH="${1:-aarch64_cortex-a53}"
-VERSION="${2:-$(jq -r .version package.json)}"
+# The package is arch-independent (prebuilt SPA + shell rpcd + JSON), so it is
+# built once as Architecture: all and installs on every target. (A leading
+# arch argument is still accepted and ignored for backwards compatibility.)
+case "${1:-}" in
+    aarch64_*|arm_*|mips_*|mipsel_*|x86_64|all) shift ;;
+esac
+VERSION="${1:-$(jq -r .version package.json)}"
+ARCH="all"
 PACKAGE_NAME="configurationwizzard"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

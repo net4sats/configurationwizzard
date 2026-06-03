@@ -1,8 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-ARCH="${1:-aarch64_cortex-a53}"
-VERSION="${2:-$(jq -r .version package.json)}"
+# Arch-independent (admin SPA + shell rpcd + JSON): built once as
+# Architecture: all. A leading arch argument is accepted and ignored.
+case "${1:-}" in
+    aarch64_*|arm_*|mips_*|mipsel_*|x86_64|all) shift ;;
+esac
+VERSION="${1:-$(jq -r .version package.json)}"
+ARCH="all"
 PACKAGE_NAME="net4sats-admin"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

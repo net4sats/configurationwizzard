@@ -62,8 +62,12 @@ define Package/configurationwizzard/install
 	$(INSTALL_DIR) $(1)/www/net4sats
 	$(CP) $(PKG_MAKEFILE_DIR)dist/admin/* $(1)/www/net4sats/
 
-	$(INSTALL_DIR) $(1)/etc/nodogsplash/htdocs
-	$(CP) $(PKG_MAKEFILE_DIR)dist/portal/* $(1)/etc/nodogsplash/htdocs/
+	# tollgate-wrt makes /etc/nodogsplash/htdocs a symlink to this directory.
+	# opkg happily writes the portal through that symlink, but apk-tools does
+	# not, so install straight to the canonical location. PKG_FLAGS:=overwrite
+	# authorises replacing the base tollgate-captive-portal-site files.
+	$(INSTALL_DIR) $(1)/etc/tollgate/tollgate-captive-portal-site
+	$(CP) $(PKG_MAKEFILE_DIR)dist/portal/* $(1)/etc/tollgate/tollgate-captive-portal-site/
 
 	$(INSTALL_DIR) $(1)/usr/libexec/rpcd
 	$(INSTALL_BIN) $(PKG_MAKEFILE_DIR)rpcd/tollgate $(1)/usr/libexec/rpcd/tollgate
