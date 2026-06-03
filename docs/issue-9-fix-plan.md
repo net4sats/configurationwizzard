@@ -212,6 +212,42 @@ Tested on @Origami74's router (OpenWrt 25.12.2, `192.168.1.1`) and found:
 
 ---
 
+## Bug 9: Test mint Lightning invoice — lnbc check blocks auto-pay flow
+
+> Phone shows "This mint doesn't support Lightning payments" when trying to pay
+> via Lightning on a router using testnut mint.
+
+### Root cause
+
+The testnut mint (`testnut.cashu.exchange`) returns a dummy invoice string
+(`dummy-mint-1-...`) instead of a real `lnbc` BOLT11 invoice. Testnut
+auto-pays these dummy quotes within seconds, so the Lightning payment flow
+should still complete.
+
+However, the Bug 1 fix added a strict `lnbc` prefix check in
+`captive-portal.tsx:218-221` that **blocks the entire flow** when no valid
+BOLT11 is found. The error message is shown and the polling loop never starts,
+preventing testnut's auto-pay from being detected.
+
+### Fix
+
+Relax the `lnbc` check to be non-blocking for the Lightning invoice flow:
+- If `invoice` starts with `lnbc`: show invoice string + QR code, start polling
+- If `invoice` is non-empty but not `lnbc`: show "Processing payment..." state,
+  start polling immediately (test mint auto-pay will settle the quote)
+- If `invoice` is empty: show error and stop (genuine failure)
+
+### Checklist
+
+- [ ] `src/routes/captive-portal.tsx` — refactor `handleGenerateInvoice` to allow
+      non-lnbc invoices, add "processing" state for test mints
+- [ ] Build verification
+- [ ] Deploy to routers
+- [ ] Phone test: Lightning tab → "Processing payment..." → success
+- [ ] Push to PR #10
+
+---
+
 ## Bug 8: ubusCall() doesn't handle OpenWrt 25 error format
 
 > Post-login ubus calls fail with "No result from ubus" instead of redirecting
@@ -237,7 +273,7 @@ at line 42 is never reached.
 
 ### Fix
 
-- [ ] `src/lib/ubus.ts` — add `json.error` check before `json.result` check in
+- [x] `src/lib/ubus.ts` — add `json.error` check before `json.result` check in
       `ubusCall()`, map `error.code === -32002` to SESSION_EXPIRED
 - [x] Verify on OpenWrt 25 router (192.168.1.1)
 - [x] Verify on OpenWrt 24 router (10.47.41.1) — regression test
@@ -293,6 +329,9 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Bug 8: ubusCall() OpenWrt 25 error format handling
 - [x] Push Bug 8 fix to PR branch
 - [x] Build verification after Bug 8 fix
+- [ ] Bug 9: Relax lnbc check for test mint Lightning flow
+- [ ] Build verification after Bug 9 fix
+- [ ] Push Bug 9 fix to PR branch
 
 ### gonuts-tollgate (OpenTollGate org fork)
 
@@ -322,7 +361,13 @@ Create `tests/browser/admin-login.spec.mjs`:
 
 - [x] Deploy updated configurationwizzard packaging to router
 - [x] Deploy rebuilt `tollgate-wrt` binary to router
-- [x] Verify Lightning invoice flow with testnut
+- [x] Deploy to Arjen's router (192.168.1.1, OpenWrt 25)
+- [x] Deploy to our router (10.47.41.1, OpenWrt 24)
+- [x] E2E tests pass on both routers (35/1/6 each)
+- [x] Requested reviews on PR #10 (Origami74, Amperstrand)
+- [x] Requested reviews on PR #158 (Origami74, Amperstrand)
+- [x] Comment on issue #9 about pre-existing /whoami failure
+- [ ] Verify Lightning invoice flow with testnut (Bug 9 fix)
 - [ ] Verify Cashu payment flow (WiFi client test)
 - [ ] Verify admin settings (profit_share, drain, mints)
 
