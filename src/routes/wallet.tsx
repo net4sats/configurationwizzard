@@ -8,7 +8,7 @@ interface MintBalance {
 
 interface DrainToken {
   mint_url: string;
-  balance: number;
+  balance_sats: number;
   token: string;
 }
 
@@ -83,7 +83,7 @@ export default function Wallet() {
       const res = await ubusCall('tollgate', 'wallet_drain_cashu');
       if (res.success && res.data?.tokens) {
         setDrainTokens(res.data.tokens);
-        setDrainMessage(`Drained ${res.data.total_sats || 0} sats from ${res.data.tokens.length} mint(s)`);
+        setDrainMessage(`Drained ${res.data.total_sats || res.data.total || 0} sats from ${res.data.tokens.length} mint(s)`);
         fetchWallet();
       } else {
         setDrainMessage(`Error: ${res.error || 'drain failed'}`);
@@ -221,7 +221,7 @@ export default function Wallet() {
                   <span style={{ fontSize: 'var(--font-size-xsmall)', color: 'var(--text-dim)', wordBreak: 'break-all' }}>
                     {dt.mint_url}
                   </span>
-                  <span style={{ fontWeight: 600 }}>{dt.balance.toLocaleString()} sats</span>
+                  <span style={{ fontWeight: 600 }}>{dt.balance_sats.toLocaleString()} sats</span>
                 </div>
                 <div className="flex gap-sm">
                   <input

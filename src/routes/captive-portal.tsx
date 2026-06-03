@@ -214,7 +214,13 @@ export default function CaptivePortal() {
         setLnGenerating(false);
         return;
       }
-      setLnInvoice(res.invoice || '');
+      const invoice = res.invoice || '';
+      if (!invoice || !invoice.toLowerCase().startsWith('lnbc')) {
+        setLnError('Mint returned an invalid invoice. The mint may be unreachable or misconfigured.');
+        setLnGenerating(false);
+        return;
+      }
+      setLnInvoice(invoice);
       setLnQuoteId(res.quote);
       setLnGenerated(true);
       setLnGenerating(false);
@@ -512,6 +518,12 @@ export default function CaptivePortal() {
                     <button className="ghost">QR</button>
                   </div>
                 </div>
+
+                {pricing?.mintUrl && (
+                  <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.35)', textAlign: 'center' }}>
+                    Accepted mint: {pricing.mintUrl}
+                  </p>
+                )}
 
                 <div className="tollgate-captive-portal-method-submit" style={{ marginTop: '1.5rem' }}>
                   <button disabled={!isCashuValid || cashuPaying} onClick={handleCashuPay}>
