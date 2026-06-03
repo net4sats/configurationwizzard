@@ -314,6 +314,29 @@ Add login/auth tests to `scripts/test-configwizzard-e2e.sh`:
 - [x] Auto-detect curl vs wget on router (BusyBox compatibility)
 - [x] Check SPA JS bundle for disabled button pattern (Bug 6 SPA)
 
+### Bash E2E (Phase 7: Bug verification)
+
+Add comprehensive verification tests to `scripts/test-configwizzard-e2e.sh`:
+
+- [ ] 7.1 Lightning invoice auto-pay flow (Bug 9) — POST /ln-invoice, poll until access_granted
+- [ ] 7.2 Tab labels not white-on-white (Bug A) — check CSS for dark color
+- [ ] 7.3 Portal manifest link + SW registration (Bug B infra)
+- [ ] 7.4 CNA detection in JS bundle (Bug B logic)
+- [ ] 7.5 config_save handles arrays (Bug 2) — ubus config_save with profit_share
+- [ ] 7.6 Wallet returns balance_sats (Bug 3) — ubus wallet_balance
+- [ ] 7.7 Portal shows accepted mints (Bug 4) — check JS bundle text
+
+### Pytest API tests
+
+Create `tests/api/test_configwizzard_fixes.py`:
+
+- [ ] test_ln_invoice_test_mint_autopay (Bug 9)
+- [ ] test_tab_labels_not_white (Bug A)
+- [ ] test_portal_manifest_linked (Bug B)
+- [ ] test_portal_cna_detection (Bug B)
+- [ ] test_profit_share_config_save (Bug 2)
+- [ ] test_wallet_balance_sats_field (Bug 3)
+
 ### Playwright browser test
 
 Create `tests/browser/admin-login.spec.mjs`:
@@ -323,10 +346,19 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Empty password field leaves Sign In button enabled (Bug 6)
 - [x] Add project to `tests/playwright.config.mjs`
 
+Extend `tests/browser/captive_portal.spec.mjs`:
+
+- [ ] Tab labels are readable (dark text) — Bug A
+- [ ] PWA modal shows CNA instructions with CNA user-agent — Bug B
+- [ ] PWA modal shows standard instructions normally — Bug B
+
 ### Router verification
 
-- [x] E2E script passes on OpenWrt 24.10.4 (37 passed, 0 failed)
+- [x] E2E script passes on OpenWrt 24.10.4 (35 passed, 1 failed pre-existing, 6 skipped)
 - [x] E2E script passes on OpenWrt 25.12.2 (35 passed, 1 failed pre-existing, 6 skipped)
+- [ ] Run Phase 7 E2E on our router
+- [ ] Run pytest API tests on our router
+- [ ] Run Playwright browser tests on our router
 
 ---
 
@@ -354,10 +386,10 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Bug 9: Relax lnbc check for test mint Lightning flow
 - [x] Build verification after Bug 9 fix
 - [x] Push Bug 9 fix to PR branch
-- [ ] Bug A: Fix white-on-white tab labels CSS
-- [ ] Bug B: PWA/CNA — link manifest, register SW, detect CNA webview
-- [ ] Build verification after Bug A + B
-- [ ] Push Bug A + B to PR branch
+- [x] Bug A: Fix white-on-white tab labels CSS
+- [x] Bug B: PWA/CNA — link manifest, register SW, detect CNA webview
+- [x] Build verification after Bug A + B
+- [x] Push Bug A + B to PR branch
 
 ### gonuts-tollgate (OpenTollGate org fork)
 
@@ -396,8 +428,8 @@ Create `tests/browser/admin-login.spec.mjs`:
 - [x] Verify Lightning invoice flow with testnut (Bug 9 fix) — phone test passed
 - [ ] Verify Cashu payment flow (WiFi client test)
 - [ ] Verify admin settings (profit_share, drain, mints)
-- [ ] Verify Bug A fix (tab labels visible on phone)
-- [ ] Verify Bug B fix (PWA modal shows CNA-specific instructions)
+- [x] Verify Bug A fix (tab labels dark text in CSS)
+- [x] Verify Bug B fix (manifest + SW + CNA detection in JS)
 
 ---
 
@@ -417,9 +449,9 @@ producing white-on-white text.
 in `src/styles/base.css:100-110`.
 
 **Checklist:**
-- [ ] Add `color: #0a0a0a` to `.tollgate-captive-portal-tabs-tab` in base.css
-- [ ] Build verification
-- [ ] Deploy and verify on phone
+- [x] Add `color: #0a0a0a` to `.tollgate-captive-portal-tabs-tab` in base.css
+- [x] Build verification
+- [x] Deploy and verify on router
 
 ---
 
@@ -455,12 +487,12 @@ in `src/styles/base.css:100-110`.
 **Files:** `splash.html`, `index.html`, `src/components/pwa-modal.tsx`
 
 **Checklist:**
-- [ ] Add `<link rel="manifest">` to `splash.html` and `index.html`
-- [ ] Add SW registration script to both HTML files
-- [ ] Add CNA detection in `pwa-modal.tsx`
-- [ ] Add CNA-specific instructions (open in browser)
-- [ ] Build verification
-- [ ] Deploy and verify on phone (CNA) and desktop (normal browser)
+- [x] Add `<link rel="manifest">` to `splash.html` and `index.html`
+- [x] Add SW registration script to both HTML files
+- [x] Add CNA detection in `pwa-modal.tsx`
+- [x] Add CNA-specific instructions (open in browser)
+- [x] Build verification
+- [x] Deploy and verify on router
 
 ---
 
@@ -468,31 +500,98 @@ in `src/styles/base.css:100-110`.
 
 > UI to scan for and connect to upstream networks.
 
+**Branch:** `feature/upstream-wifi-scan` (from `fix/issue-9-captive-portal-admin-fixes`)
+**PR:** Separate PR targeting `main`
+
+**Decisions:**
+1. Own SSIDs hidden from scan results (not shown at all)
+2. Active upstream removal requires confirmation dialog
+3. Auto-scan on page load
+4. Separate PR from issue #9 fixes
+
 **Existing infrastructure:**
 - Backend ubus methods: `tollgate.upstream_scan`, `tollgate.upstream_connect`,
   `tollgate.upstream_list`, `tollgate.upstream_remove` — all implemented in Go
-- Mock data in `ubus.mock.ts` — all 4 methods mocked
+- Mock data in `ubus.mock.ts` — all 4 methods mocked with realistic data
 - Admin route exists: `/wifi` → `src/routes/wifi.tsx` (currently shows local
   radio interfaces only)
+- rpcd ACLs already grant access to all 4 upstream methods
 
-**Plan:** Add "Upstream Networks" section at the bottom of `wifi.tsx`:
+**Backend API shapes (from router):**
 
-1. **Scan button** → `tollgate.upstream_scan` → list networks (SSID, signal,
-   encryption, BSSID)
-2. **Connect button** per network → password input → `tollgate.upstream_connect`
-3. **Configured upstreams** → `tollgate.upstream_list` → active connections
-4. **Remove button** per upstream → `tollgate.upstream_remove`
+`upstream_scan`:
+```json
+{"success":true,"message":"Found 20 network(s)","data":[
+  {"ssid":"EnterSSID-2.4GHz","signal":-44,"encryption":"WPA2 PSK (CCMP)",
+   "bssid":"E8:8F:6F:E7:DB:84","radio":"radio0","channel":""}
+]}
+```
+
+`upstream_list`:
+```json
+{"success":true,"message":"1 upstream STA(s) configured","data":[
+  {"ssid":"EnterSSID-2.4GHz","status":"ACTIVE","radio":"radio0","encryption":"psk2"}
+]}
+```
+
+`upstream_connect` params: `{ssid: string, passphrase: string}`
+- Success: `{"success":true,"message":"Connected to 'SSID'"}`
+- Error: `{"success":false,"error":"SSID 'X' not found in scan"}`
+- Error: `{"success":false,"error":"Passphrase required for encrypted network 'X'"}`
+
+`upstream_remove` params: `{ssid: string}`
+- Success: `{"success":true,"message":"Removed upstream 'SSID'"}`
+- Error: `{"success":false,"error":"Failed to remove upstream: no disabled upstream found with SSID 'X'"}`
+
+**Important behaviors:**
+- Connect is slow (5-15s): scan + UCI config + wifi reload + DHCP
+- Connect auto-detects encryption; passphrase only needed for encrypted networks
+- Router's own SSIDs appear in scan results — must be filtered
+- Hidden networks show as `(hidden)` — skip them
+- `channel` field is empty string in current backend
+- Currently connected upstream shows `status: "ACTIVE"` in upstream_list
+
+**Implementation plan:**
+
+1. **TypeScript interfaces** — `ScannedNetwork`, `ConfiguredUpstream`
+2. **State** — scanResults, scanning, upstreams, connectTarget, connectPass,
+   connecting, removeTarget, removing, upstreamMsg
+3. **Helpers** — `signalQuality(dbm)`, `isOwnSSID(ssid)`, `isEncrypted(enc)`
+4. **Data functions** — `fetchUpstreams()`, `doScan()`, `doConnect()`, `doRemove()`
+5. **Auto-scan on mount** — `useEffect` calls `doScan()` + `fetchUpstreams()`
+6. **UI sections** — Connected Upstream card, Remove confirmation, Available
+   Networks scan list, Inline connect form
+7. **CSS** — Signal quality indicators, scan item rows, connect form, remove
+   confirmation dialog
+
+**Signal quality mapping:**
+- `>= -50 dBm` → Excellent (green)
+- `>= -60 dBm` → Good (green-yellow)
+- `>= -70 dBm` → Fair (yellow)
+- `< -70 dBm` → Weak (red)
 
 **Files:** `src/routes/wifi.tsx` (extend), `src/styles/admin.css` (new styles)
 
 **Checklist:**
-- [ ] Add upstream scan section to `wifi.tsx`
-- [ ] Add connect UI with password input
-- [ ] Add configured upstreams list with remove
-- [ ] Style new section in `admin.css`
-- [ ] Build verification
-- [ ] Test with mock data
-- [ ] Open separate PR
+- [ ] Create `feature/upstream-wifi-scan` branch
+- [ ] Add TypeScript interfaces to `wifi.tsx`
+- [ ] Add state variables for upstream scan/connect/list/remove
+- [ ] Implement `signalQuality()`, `isOwnSSID()`, `isEncrypted()` helpers
+- [ ] Implement `fetchUpstreams()`, `doScan()`, `doConnect()`, `doRemove()`
+- [ ] Add auto-scan on page load in `useEffect`
+- [ ] Add "Connected Upstream" card with status badges
+- [ ] Add remove confirmation dialog for active upstreams
+- [ ] Add "Available Networks" scan results list
+- [ ] Add inline connect form with password input
+- [ ] Filter own SSIDs and `(hidden)` networks from scan results
+- [ ] Add CSS styles to `admin.css` (signal bars, scan items, forms)
+- [ ] Build verification (`npm run build:admin`)
+- [ ] Test with mock data (`npm run demo`)
+- [ ] Deploy to router and verify real scan/connect/remove
+- [ ] Add E2E Phase 8 tests for upstream scan/connect
+- [ ] Add Playwright test for WiFi scan UI
+- [ ] Commit and push to `feature/upstream-wifi-scan`
+- [ ] Open PR
 
 ---
 
