@@ -7,7 +7,8 @@ Reference: https://github.com/net4sats/configurationwizzard/issues/9
 ## Overview
 
 Four bugs identified during on-device testing, plus a NoDogSplash port
-conflict discovered during deployment. Fixes span three repos:
+conflict discovered during deployment, plus two login issues found by
+@Origami74. Fixes span three repos:
 
 1. **`configurationwizzard`** — frontend SPA + packaging
 2. **`gonuts-tollgate`** — Cashu wallet library (BOLT11 handling)
@@ -44,16 +45,23 @@ fall back to `time.Now().Unix()` when decoding fails.
 
 **Backend library (gonuts-tollgate):**
 
-- [ ] Fork `Amperstrand/gonuts-tollgate` → `net4sats/gonuts-tollgate`
-- [ ] Patch `wallet/wallet.go` — make `decodepay.Decodepay` non-fatal in
+- [x] Fork `Amperstrand/gonuts-tollgate` → `net4sats/gonuts-tollgate`
+- [x] Patch `wallet/wallet.go` — make `decodepay.Decodepay` non-fatal in
       `RequestMint()`, fall back to `time.Now().Unix()` for `CreatedAt`
-- [ ] Tag as `v0.7.1`
-- [ ] Open PR to `Amperstrand/gonuts-tollgate`
+- [x] Tag as `v0.7.1`
+- [x] Open PR #2 to `Amperstrand/gonuts-tollgate`
+- [x] Discovered @Amperstrand already has identical fix at commit `9b2b843`
+      on `feature/v2-keyset-ids` branch (better documented, same logic)
+- [x] Close our PR #2 — @Amperstrand's fix supersedes ours
+- [x] Request @Amperstrand merge `9b2b843` into main and tag as `v0.7.1`
+- [x] Clean up net4sats fork (delete branch + tag)
 
 **Backend daemon (tollgate-module-basic-go):**
 
-- [ ] Update `src/go.mod` replace directive to `v0.7.1`
-- [ ] Rebuild `tollgate-wrt` binary
+- [x] Update `src/go.mod` replace directive to `net4sats/gonuts-tollgate v0.7.1`
+- [x] Fix `99-tollgate-setup` nodogsplash gatewayport → 2050 + allow rule
+- [x] Rebuild `tollgate-wrt` binary for `aarch64_cortex-a53`
+- [ ] Switch replace directive to `Amperstrand/gonuts-tollgate v0.7.1` once tagged upstream
 
 ---
 
@@ -126,16 +134,56 @@ The port 2050 allow rule is also missing from `users_to_router`.
 
 ### Fix (configurationwizzard packaging)
 
-- [ ] `packaging/postinst` — set nodogsplash `gatewayport=2050` and add
+- [x] `packaging/postinst` — set nodogsplash `gatewayport=2050` and add
       `users_to_router 'allow tcp port 2050'`
-- [ ] `packaging/files/etc/uci-defaults/91-configurationwizzard-setup` — same
-- [ ] `packaging/Makefile` inline postinst — same
+- [x] `packaging/files/etc/uci-defaults/91-configurationwizzard-setup` — same
+- [x] `packaging/Makefile` inline postinst — same
 
 ### Fix (tollgate-module-basic-go packaging)
 
-- [ ] `packaging/files/etc/uci-defaults/99-tollgate-setup` — change
+- [x] `packaging/files/etc/uci-defaults/99-tollgate-setup` — change
       `gatewayport='80'` to `gatewayport='2050'` and add
       `allow tcp port 2050` to `users_to_router` rules
+
+---
+
+## Bug 6: Empty password rejected by login form
+
+> Fresh OpenWrt root accounts often have no password set, but the Sign-In
+> button is disabled when the password field is empty.
+
+Reported by @Origami74 on issue #9.
+
+### Root cause
+
+`src/routes/login.tsx:140` has `disabled={loading || !password}` which prevents
+submitting an empty password. On a fresh OpenWrt install, the root account may
+have no password set.
+
+### Fix
+
+- [ ] `src/routes/login.tsx` — remove `!password` from disabled check, allow
+      empty password submission
+
+---
+
+## Bug 7: Wrong password gives confusing error message
+
+> Wrong credentials surface as "ubus error 2: unknown" instead of a clear
+> "Invalid credentials" message.
+
+Reported by @Origami74 on issue #9.
+
+### Root cause
+
+`src/lib/ubus.ts:81-83` checks `json.result[0] !== 0` during login, but ubus
+returns error code `2` (not `0`) for invalid credentials. The generic error
+path produces "ubus error 2: unknown" which is confusing.
+
+### Fix
+
+- [ ] `src/lib/ubus.ts` — in the `login()` function, map any non-zero ubus
+      response to "Invalid username or password" instead of the generic error
 
 ---
 
@@ -150,27 +198,63 @@ The port 2050 allow rule is also missing from `users_to_router`.
 - [x] Bug 4: Show accepted mints
 - [x] Build verification (`npm run build`) — passes cleanly
 - [x] PR #10 created: https://github.com/net4sats/configurationwizzard/pull/10
-- [ ] Bug 5: Fix postinst / uci-defaults / Makefile for nodogsplash port 2050
-- [ ] Bug 1 error message: improve wording for non-Lightning mints
-- [ ] Push updates to PR branch
+- [x] Bug 5: Fix postinst / uci-defaults / Makefile for nodogsplash port 2050
+- [x] Bug 1 error message: improve wording for non-Lightning mints
+- [x] Push updates to PR branch
+- [ ] Bug 6: Allow empty password in login form
+- [ ] Bug 7: Clear "Invalid credentials" error for wrong password
+- [ ] Push login fixes to PR branch
+- [ ] Final build verification
 
-### gonuts-tollgate (upstream PR)
+### gonuts-tollgate (upstream coordination)
 
-- [ ] Fork `Amperstrand/gonuts-tollgate` to `net4sats/gonuts-tollgate`
-- [ ] Patch `wallet/wallet.go` RequestMint — non-fatal BOLT11 decode
-- [ ] Tag `v0.7.1`
-- [ ] Open PR to `Amperstrand/gonuts-tollgate`
+- [x] Fork `Amperstrand/gonuts-tollgate` to `net4sats/gonuts-tollgate`
+- [x] Patch `wallet/wallet.go` RequestMint — non-fatal BOLT11 decode
+- [x] Tag `v0.7.1` on our fork
+- [x] Open PR #2 to `Amperstrand/gonuts-tollgate`
+- [x] Discovered @Amperstrand has identical fix at `9b2b843` on `feature/v2-keyset-ids`
+- [x] Close our PR #2 (superseded by @Amperstrand's fix)
+- [x] Request @Amperstrand merge `9b2b843` into main + tag `v0.7.1`
+- [x] Clean up net4sats fork (delete branch + tag)
 
 ### tollgate-module-basic-go (separate commit/PR)
 
-- [ ] Update `src/go.mod` to gonuts-tollgate `v0.7.1`
-- [ ] Fix `99-tollgate-setup` nodogsplash gatewayport → 2050 + allow rule
-- [ ] Rebuild `tollgate-wrt` binary for `aarch64_cortex-a53`
+- [x] Update `src/go.mod` to gonuts-tollgate `v0.7.1` (currently net4sats fork)
+- [x] Fix `99-tollgate-setup` nodogsplash gatewayport → 2050 + allow rule
+- [x] Rebuild `tollgate-wrt` binary for `aarch64_cortex-a53`
+- [ ] Switch to `Amperstrand/gonuts-tollgate v0.7.1` once tagged upstream
+- [ ] Open PR to `OpenTollGate/tollgate-module-basic-go`
 
 ### Router deployment
 
-- [ ] Deploy updated configurationwizzard packaging to router
-- [ ] Deploy rebuilt `tollgate-wrt` binary to router
-- [ ] Verify Lightning invoice flow with testnut
-- [ ] Verify Cashu payment flow
+- [x] Deploy updated configurationwizzard packaging to router
+- [x] Deploy rebuilt `tollgate-wrt` binary to router
+- [x] Verify Lightning invoice flow with testnut
+- [ ] Verify Cashu payment flow (WiFi client test)
 - [ ] Verify admin settings (profit_share, drain, mints)
+
+---
+
+## Roadmap (post-issue-9)
+
+### Upstream coordination (blocked on @Amperstrand)
+
+- [ ] @Amperstrand cherry-picks `9b2b843` into `main` + tags `v0.7.1` in `gonuts-tollgate`
+- [ ] Update `tollgate-module-basic-go/src/go.mod` replace to `Amperstrand/gonuts-tollgate v0.7.1`
+- [ ] Open PR to `OpenTollGate/tollgate-module-basic-go` with go.mod + nodogsplash port fix
+
+### Ethernet client testing
+
+NoDogSplash only tracks clients that trigger the captive portal redirect
+(port 80 → 2050). Direct access to allowed ports (2121, 8080) from
+ethernet-connected devices bypasses tracking, so `ndsctl auth <MAC>` fails
+for untracked MACs. For now, testing from WiFi clients that hit the portal
+first works correctly. A future improvement could ensure ethernet clients
+are also tracked, or provide a manual auth mechanism.
+
+### E2E phone test
+
+Full end-to-end test from a WiFi-connected phone: captive portal redirect →
+payment → gate open. Requires physical device on the router's WiFi network.
+
+---

@@ -78,7 +78,14 @@ export async function login(
       ],
     }),
   });
-  const json = await res.json();
+
+  let json: any;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error('Invalid username or password');
+  }
+
   if (!json.result || json.result[0] !== 0) {
     throw new Error('Invalid username or password');
   }
