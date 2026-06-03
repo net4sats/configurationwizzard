@@ -216,7 +216,7 @@ export default function CaptivePortal() {
       }
       const invoice = res.invoice || '';
       if (!invoice || !invoice.toLowerCase().startsWith('lnbc')) {
-        setLnError('Mint returned an invalid invoice. The mint may be unreachable or misconfigured.');
+        setLnError('This mint doesn\'t support Lightning payments. Lightning requires a mint connected to a Lightning node. Try paying with Cashu instead, or switch to a production mint.');
         setLnGenerating(false);
         return;
       }
