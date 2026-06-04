@@ -82,6 +82,7 @@ export default function CaptivePortal() {
   const [lnGenerating, setLnGenerating] = useState(false);
   const [lnGenerated, setLnGenerated] = useState(false);
   const [lnPolling, setLnPolling] = useState(false);
+  const [lnTestMint, setLnTestMint] = useState(false);
   const [lnQuoteId, setLnQuoteId] = useState('');
   const [lnError, setLnError] = useState('');
 
@@ -143,6 +144,7 @@ export default function CaptivePortal() {
     setLnInvoice('');
     setLnGenerated(false);
     setLnGenerating(false);
+    setLnTestMint(false);
     setLnError('');
     setCashuError('');
     setCashuToken('');
@@ -207,6 +209,7 @@ export default function CaptivePortal() {
     setLnError('');
     setLnInvoice('');
     setLnGenerated(false);
+    setLnTestMint(false);
     try {
       const res = await createLnInvoice(selectedSats, pricing.mintUrl);
       if (res.status === 0 || res.error) {
@@ -214,9 +217,23 @@ export default function CaptivePortal() {
         setLnGenerating(false);
         return;
       }
-      setLnInvoice(res.invoice || '');
+      const invoice = res.invoice || '';
+      if (!invoice) {
+        setLnError('Failed to create invoice. Please try again.');
+        setLnGenerating(false);
+        return;
+      }
+
+      const isRealBolt11 = invoice.toLowerCase().startsWith('lnbc');
       setLnQuoteId(res.quote);
-      setLnGenerated(true);
+
+      if (isRealBolt11) {
+        setLnInvoice(invoice);
+        setLnGenerated(true);
+      } else {
+        setLnTestMint(true);
+        setLnGenerated(true);
+      }
       setLnGenerating(false);
 
       pollRef.current = window.setInterval(async () => {
@@ -421,7 +438,7 @@ export default function CaptivePortal() {
                   </div>
                 </div>
 
-                {lnGenerated && lnInvoice && (
+                {lnGenerated && lnInvoice && !lnTestMint && (
                   <div style={{ textAlign: 'center', padding: '1rem', background: '#fff', borderRadius: 'var(--border-radius)' }}>
                     <div
                       style={{
@@ -450,6 +467,17 @@ export default function CaptivePortal() {
                   </div>
                 )}
 
+                {lnGenerated && lnTestMint && lnPolling && (
+                  <div style={{ textAlign: 'center', padding: '1.5rem', background: '#fff', borderRadius: 'var(--border-radius)' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0a0a0a', marginBottom: '0.5rem' }}>
+                      Processing payment…
+                    </div>
+                    <div style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.4)' }}>
+                      Test mint is settling your invoice.
+                    </div>
+                  </div>
+                )}
+
                 {lnError && (
                   <div className="error-msg">
                     <div className="dot" />
@@ -463,7 +491,7 @@ export default function CaptivePortal() {
                     onClick={handleGenerateInvoice}
                     style={lnGenerated ? { background: '#32d74b', color: '#fff' } : undefined}
                   >
-                    {lnGenerating ? 'Generating…' : lnGenerated ? 'Invoice Generated ✓' : 'Generate Invoice'}
+                    {lnGenerating ? 'Generating…' : lnGenerated && lnTestMint ? 'Processing…' : lnGenerated ? 'Invoice Generated ✓' : 'Generate Invoice'}
                   </button>
                 </div>
               </>
@@ -512,6 +540,12 @@ export default function CaptivePortal() {
                     <button className="ghost">QR</button>
                   </div>
                 </div>
+
+                {pricing?.mintUrl && (
+                  <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.35)', textAlign: 'center' }}>
+                    Accepted mint: {pricing.mintUrl}
+                  </p>
+                )}
 
                 <div className="tollgate-captive-portal-method-submit" style={{ marginTop: '1.5rem' }}>
                   <button disabled={!isCashuValid || cashuPaying} onClick={handleCashuPay}>

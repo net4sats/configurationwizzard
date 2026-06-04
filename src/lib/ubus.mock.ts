@@ -244,7 +244,8 @@ export function mockUbusCall(
       success: true,
       message: 'Successfully drained 14250 sats from 1 mints',
       data: {
-        tokens: [{ mint_url: 'https://testnut-compat.mints.orangesync.tech', balance: 14250, token: 'cashuAeyJ0b2tlbiI6Im1vY2sifQ' }],
+        success: true,
+        tokens: [{ mint_url: 'https://testnut-compat.mints.orangesync.tech', balance_sats: 14250, token: 'cashuAeyJ0b2tlbiI6Im1vY2sifQ' }],
         total_sats: 14250,
       },
     }),

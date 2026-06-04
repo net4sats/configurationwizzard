@@ -137,7 +137,7 @@ export default function LoginPage({ onLoggedIn }: { onLoggedIn?: () => void }) {
             <button
               type="submit"
               className="btn btn-primary btn-block"
-              disabled={loading || !password}
+              disabled={loading}
               style={{ marginTop: '0.4rem', height: '42px' }}
             >
               {loading ? (

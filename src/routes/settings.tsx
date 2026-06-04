@@ -125,13 +125,31 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      for (const [key, value] of Object.entries(changed)) {
-        const val = typeof value === 'object' ? JSON.stringify(value) : String(value);
-        const res = await ubusCall('tollgate', 'config_set', { key, value: val });
+      const hasComplex = Object.values(changed).some(
+        v => Array.isArray(v) || (typeof v === 'object' && v !== null),
+      );
+
+      if (hasComplex) {
+        const merged = { ...originalValues };
+        for (const [key, value] of Object.entries(changed)) {
+          merged[key] = value;
+        }
+        const res = await ubusCall('tollgate', 'config_save', {
+          json: JSON.stringify(merged),
+        });
         if (!res.success) {
-          setMessage('schema', `Error setting ${key}: ${res.error}`);
+          setMessage('schema', `Error: ${res.error || 'config save failed'}`);
           setSaving(false);
           return;
+        }
+      } else {
+        for (const [key, value] of Object.entries(changed)) {
+          const res = await ubusCall('tollgate', 'config_set', { key, value: String(value) });
+          if (!res.success) {
+            setMessage('schema', `Error setting ${key}: ${res.error}`);
+            setSaving(false);
+            return;
+          }
         }
       }
       setOriginalValues({ ...configValues });

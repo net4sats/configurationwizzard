@@ -14,6 +14,15 @@ if ! uci -q get uhttpd.net4sats >/dev/null 2>&1; then
     uci commit uhttpd
 fi
 
+if uci -q get nodogsplash.@nodogsplash[0] >/dev/null 2>&1; then
+    uci set nodogsplash.@nodogsplash[0].gatewayport='2050'
+    nds_users="$(uci -q get nodogsplash.@nodogsplash[0].users_to_router 2>/dev/null || echo '')"
+    if ! echo "$nds_users" | grep -q "port 2050"; then
+        uci add_list nodogsplash.@nodogsplash[0].users_to_router='allow tcp port 2050'
+    fi
+    uci commit nodogsplash
+fi
+
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
 

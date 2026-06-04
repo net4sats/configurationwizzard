@@ -40,6 +40,8 @@ export interface LnInvoiceResponse {
   expiry?: number;
   state?: string;
   access_granted?: boolean;
+  allotment?: number;
+  metric?: string;
   error?: string;
 }
 
