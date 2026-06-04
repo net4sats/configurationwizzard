@@ -55,3 +55,12 @@ dist/
 .env
 .env.local
 *.ipk
+
+# LLM planning documents — not for release
+*-plan.md
+PLAN-*.md
+TODO-*.md
+MOCK-*.md
+TEST-COVERAGE-*.md
+PR*-DECOMPOSITION-*.md
+docs/tmp/
