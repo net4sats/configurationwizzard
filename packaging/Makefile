@@ -104,6 +104,11 @@ if uci -q get nodogsplash.@nodogsplash[0] >/dev/null 2>&1; then
     uci commit nodogsplash
 fi
 
+# Resolve .apk-new files left by apk when existing files were modified
+# (e.g. by tollgate-wrt symlink management or sysupgrade preservation).
+find /etc/tollgate/net4sats-captive-portal-site /www/net4sats -name '*.apk-new' \
+	-exec sh -c 'mv "$$1" "$${1%.apk-new}"' _ {} \;
+
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
 
