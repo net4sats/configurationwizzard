@@ -27,6 +27,10 @@ if uci -q get nodogsplash.@nodogsplash[0] >/dev/null 2>&1; then
     uci commit nodogsplash
 fi
 
+echo "Resolving .apk-new files from previous installs..."
+find /etc/tollgate/net4sats-captive-portal-site /www/net4sats -name '*.apk-new' \
+    -exec sh -c 'mv "$1" "${1%.apk-new}"' _ {} \;
+
 echo "Restarting rpcd..."
 /etc/init.d/rpcd restart
 
