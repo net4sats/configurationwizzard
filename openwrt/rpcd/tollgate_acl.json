@@ -17,7 +17,8 @@
         "network.interface": ["dump"],
         "network.wireless": ["status"],
         "dhcp": ["ipv4leases", "ipv6leases"],
-        "uci": ["get", "state"]
+        "uci": ["get", "state"],
+        "file": ["read"]
       },
       "uci": ["tollgate", "wireless", "system", "network", "dhcp"]
     },
@@ -43,7 +44,8 @@
           "confirm",
           "rollback",
           "reorder"
-        ]
+        ],
+        "file": ["exec"]
       },
       "uci": ["wireless", "system", "network"]
     }
