@@ -93,7 +93,48 @@ export default function Wifi() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const data = await ubusCall('network.wireless', 'status');
+      let data = null;
+      try {
+        data = await ubusCall('network.wireless', 'status');
+      } catch {
+        const uciData = await ubusCall('uci', 'get', { config: 'wireless' });
+        if (uciData?.values) {
+          const radios = {};
+          const ifaces = [];
+          for (const [name, section] of Object.entries(uciData.values)) {
+            const s = section as any;
+            if (s['.type'] === 'wifi-device') {
+              radios[name] = {
+                up: s.disabled !== '1',
+                config: {
+                  channel: parseInt(s.channel) || 0,
+                  hwmode: s.hwmode || '',
+                  htmode: s.htmode || '',
+                  country: s.country,
+                },
+                interfaces: [],
+              };
+            } else if (s['.type'] === 'wifi-iface') {
+              ifaces.push({
+                section: name,
+                radio: s.device || '',
+                ifname: s.ifname || name,
+                ssid: s.ssid || '',
+                encryption: s.encryption || 'none',
+                hidden: s.hidden === '1',
+                mode: s.mode || 'ap',
+                network: (s.network || '').split(' '),
+              });
+            }
+          }
+          for (const iface of ifaces) {
+            if (radios[iface.radio]) {
+              radios[iface.radio].interfaces.push(iface);
+            }
+          }
+          data = radios;
+        }
+      }
       setRadios(data || {});
       setError('');
     } catch (err: any) {
@@ -214,7 +255,13 @@ export default function Wifi() {
         });
       }
       await ubusCall('uci', 'commit', { config: 'wireless' });
-      await ubusCall('network.wireless', 'reload');
+      try {
+        await ubusCall('network.wireless', 'reload');
+      } catch {
+        try {
+          await ubusCall('file', 'exec', { command: 'wifi', params: ['reload'] });
+        } catch {}
+      }
 
       setSaveMsg('saved');
       setEditSsid(null);
