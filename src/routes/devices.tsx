@@ -15,13 +15,28 @@ export default function Devices() {
 
   const fetchLeases = useCallback(async () => {
     try {
-      const data = await ubusCall('dhcp', 'ipv4leases');
-      const allLeases: DhcpLease[] = [];
-      if (data && data.device) {
-        for (const dev of Object.values(data.device) as any[]) {
-          if (dev.leases) {
-            allLeases.push(...dev.leases);
+      let allLeases: DhcpLease[] = [];
+      try {
+        const data = await ubusCall('dhcp', 'ipv4leases');
+        if (data && data.device) {
+          for (const dev of Object.values(data.device) as any[]) {
+            if (dev.leases) {
+              allLeases.push(...dev.leases);
+            }
           }
+        }
+      } catch {
+        const raw = await ubusCall('file', 'read', { path: '/tmp/dhcp.leases' });
+        if (raw && raw.data) {
+          allLeases = (raw.data as string).trim().split('\n').filter(Boolean).map(line => {
+            const parts = line.split(/\s+/);
+            return {
+              expires: parts[0] ? Math.max(0, parseInt(parts[0]) - Math.floor(Date.now() / 1000)) : 0,
+              macaddr: parts[1] || '',
+              ipaddr: parts[2] || '',
+              hostname: parts[3] || '',
+            };
+          });
         }
       }
       setLeases(allLeases);
