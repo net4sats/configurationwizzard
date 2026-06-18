@@ -27,10 +27,13 @@ echo "Configuring uhttpd..."
 scp openwrt/files/etc/config/uhttpd_net4sats "$REMOTE_USER@$ROUTER:/etc/config/uhttpd_net4sats"
 ssh "$REMOTE_USER@$ROUTER" "/etc/init.d/uhttpd restart"
 
+echo "Adding tollgate.lan DNS entry..."
+ssh "$REMOTE_USER@$ROUTER" "grep -q 'tollgate.lan' /etc/hosts || echo '$ROUTER tollgate.lan' >> /etc/hosts; killall -HUP dnsmasq 2>/dev/null; true"
+
 echo "Restarting NoDogSplash..."
 ssh "$REMOTE_USER@$ROUTER" "/etc/init.d/nodogsplash restart 2>/dev/null || echo 'nodogsplash not installed'"
 
 echo "Done!"
-echo "  Admin:    http://$ROUTER/"
+echo "  Admin:    http://tollgate.lan/ or http://$ROUTER/"
 echo "  Portal:   http://$ROUTER:2050/ (via NoDogSplash redirect)"
 echo "  LuCI:     http://$ROUTER:8080/"
