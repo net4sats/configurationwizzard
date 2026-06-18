@@ -10,7 +10,7 @@ const inputs = {
 }
 
 const bases = {
-  admin: '/net4sats/',
+  admin: '/',
   portal: './',
 }
 
