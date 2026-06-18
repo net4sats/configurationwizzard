@@ -52,18 +52,5 @@
       },
       "uci": ["wireless", "system", "network"]
     }
-  },
-  "unauthenticated": {
-    "description": "Anonymous captive portal access — pricing + payment only",
-    "read": {
-      "ubus": {
-        "tollgate": ["pricing", "status", "sessions"]
-      }
-    },
-    "write": {
-      "ubus": {
-        "tollgate": ["activate"]
-      }
-    }
   }
 }

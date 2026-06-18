@@ -9,6 +9,7 @@ import {
   type PaymentResult,
   computeSizeOptions,
 } from '../lib/payment-api';
+import { generateQRSVG } from '../lib/qr';
 
 type Tab = 'lightning' | 'cashu';
 type PortalPhase = 'loading' | 'select' | 'success' | 'error';
@@ -442,36 +443,38 @@ export default function CaptivePortal() {
                 {lnGenerated && lnInvoice && !lnTestMint && (
                   <div style={{ textAlign: 'center', padding: '1rem', background: '#fff', borderRadius: 'var(--border-radius)' }}>
                     <div
+                      style={{ width: '180px', height: '180px', margin: '0 auto 0.8rem' }}
+                      dangerouslySetInnerHTML={{ __html: generateQRSVG(lnInvoice, 180) }}
+                    />
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(lnInvoice); }}
                       style={{
-                        width: '180px',
-                        height: '180px',
-                        background: '#f5f5f5',
-                        margin: '0 auto 0.8rem',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        color: 'rgba(0,0,0,0.3)',
+                        fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.5)',
+                        background: 'none', border: '1px solid rgba(0,0,0,0.15)',
+                        padding: '0.3rem 0.8rem', borderRadius: '4px', cursor: 'pointer',
+                        marginBottom: '0.5rem',
                       }}
                     >
-                      QR code
-                    </div>
-                    <div style={{ fontSize: 'var(--font-size-small)', color: 'rgba(0,0,0,0.4)', wordBreak: 'break-all' }}>
-                      {lnInvoice}
-                    </div>
+                      Copy invoice
+                    </button>
                     {lnPolling && (
-                      <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.4)', marginTop: '0.5rem' }}>
-                        Waiting for payment…
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                        <div className="cp-spinner small" />
+                        <span style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.5)' }}>
+                          Waiting for payment…
+                        </span>
+                      </div>
                     )}
                   </div>
                 )}
 
                 {lnGenerated && lnTestMint && lnPolling && (
                   <div style={{ textAlign: 'center', padding: '1.5rem', background: '#fff', borderRadius: 'var(--border-radius)' }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0a0a0a', marginBottom: '0.5rem' }}>
-                      Processing payment…
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <div className="cp-spinner small" />
+                      <span style={{ fontSize: '1rem', fontWeight: 600, color: '#0a0a0a' }}>
+                        Processing payment…
+                      </span>
                     </div>
                     <div style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.4)' }}>
                       Test mint is settling your invoice.
