@@ -59,7 +59,7 @@ function getMorePlaceholder(metric: string): string {
   return metric === 'milliseconds' ? '60' : '1';
 }
 
-const LOGO_SRC = '/assets/logo/colour/net4sats-logo-colour.png';
+const LOGO_SRC = './assets/logo/colour/net4sats-logo-colour.png';
 
 export default function CaptivePortal() {
   const [phase, setPhase] = useState<PortalPhase>('loading');
@@ -246,6 +246,7 @@ export default function CaptivePortal() {
             const metric = poll.metric || pricing.metric;
             setGrantedText(formatAllotment(metric, allotment));
             setPhase('success');
+            window.dispatchEvent(new CustomEvent('portal-phase-change', { detail: { phase: 'success' } }));
           }
         } catch {
           // keep polling

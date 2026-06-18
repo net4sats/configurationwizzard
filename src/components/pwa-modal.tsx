@@ -10,10 +10,15 @@ export default function PwaModal() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!sessionStorage.getItem(PWA_SEEN_KEY)) {
-      setVisible(true);
-      sessionStorage.setItem(PWA_SEEN_KEY, '1');
-    }
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.phase === 'success' && !sessionStorage.getItem(PWA_SEEN_KEY)) {
+        setVisible(true);
+        sessionStorage.setItem(PWA_SEEN_KEY, '1');
+      }
+    };
+    window.addEventListener('portal-phase-change', handler);
+    return () => window.removeEventListener('portal-phase-change', handler);
   }, []);
 
   if (!visible) return null;

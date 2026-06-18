@@ -10,6 +10,8 @@
           "wallet_info",
           "status",
           "health",
+          "pricing",
+          "sessions",
           "upstream_scan",
           "upstream_list"
         ],
@@ -30,6 +32,7 @@
           "config_save_identities",
           "wallet_fund",
           "wallet_drain_cashu",
+          "activate",
           "upstream_connect",
           "upstream_remove"
         ],
@@ -48,6 +51,19 @@
         "file": ["exec"]
       },
       "uci": ["wireless", "system", "network"]
+    }
+  },
+  "unauthenticated": {
+    "description": "Anonymous captive portal access — pricing + payment only",
+    "read": {
+      "ubus": {
+        "tollgate": ["pricing", "status", "sessions"]
+      }
+    },
+    "write": {
+      "ubus": {
+        "tollgate": ["activate"]
+      }
     }
   }
 }

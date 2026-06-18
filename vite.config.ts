@@ -11,7 +11,7 @@ const inputs = {
 
 const bases = {
   admin: '/net4sats/',
-  portal: '/',
+  portal: './',
 }
 
 export default defineConfig({
