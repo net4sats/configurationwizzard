@@ -132,6 +132,24 @@ export default function CaptivePortal() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!pageError) return;
+    const t = setTimeout(() => setPageError(''), 6000);
+    return () => clearTimeout(t);
+  }, [pageError]);
+
+  useEffect(() => {
+    if (!lnError) return;
+    const t = setTimeout(() => setLnError(''), 6000);
+    return () => clearTimeout(t);
+  }, [lnError]);
+
+  useEffect(() => {
+    if (!cashuError) return;
+    const t = setTimeout(() => setCashuError(''), 6000);
+    return () => clearTimeout(t);
+  }, [cashuError]);
+
   const handleSelectSize = useCallback((idx: number) => {
     if (idx === sizeOptions.length) {
       setShowMore(true);

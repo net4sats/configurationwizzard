@@ -338,12 +338,35 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: cp-pop 0.4s ease-out;
+}
+
+@keyframes cp-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
 }
 
 .tollgate-captive-portal-access-granted-checkmark svg {
   width: 36px;
   height: 36px;
   color: var(--color-green);
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: cp-draw 0.5s 0.2s ease-out forwards;
+}
+
+@keyframes cp-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.tollgate-captive-portal-access-granted-label {
+  animation: cp-fade-up 0.5s 0.3s ease-out backwards;
+}
+
+@keyframes cp-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .tollgate-captive-portal-access-granted-label h2 {
