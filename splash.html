@@ -9,14 +9,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
     <title>net4sats</title>
+    <script>
+      (function() {
+        var h = window.location.hostname;
+        if (/^\d+\.\d+\.\d+\.\d+$/.test(h) && window.location.port === '2050') {
+          window.location.replace('http://net4sats.lan:2050' + window.location.pathname + window.location.search);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/portal-main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js');
-      }
-    </script>
   </body>
 </html>

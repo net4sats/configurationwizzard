@@ -376,50 +376,51 @@ export default function CaptivePortal() {
       )}
 
       {!pageError && pricing && (
-        <>
-          <div style={{ textAlign: 'center', padding: '1rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
-            <p style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>How much Internet would you like to buy?</p>
-          </div>
-          <p style={{ textAlign: 'center', margin: '0 0 0.4rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'inherit' }}>
+        <div style={{ textAlign: 'center', padding: '0 1rem 0.5rem' }}>
+          <p style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>How much Internet would you like to buy?</p>
+          <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
             {getMinimumLabel(pricing)}
           </p>
-
-          <div className="size-choices">
-            {sizeOptions.map((opt, idx) => (
-              <button
-                key={opt.label}
-                className={`size-btn${idx === selectedIdx && !showMore ? ' active' : ''}`}
-                onClick={() => handleSelectSize(idx)}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <button
-              className={`size-btn${showMore ? ' active' : ''}`}
-              onClick={() => handleSelectSize(sizeOptions.length)}
-            >
-              More
-            </button>
-          </div>
-
-          <div className={`more-input-wrap${showMore ? ' visible' : ''}`}>
-            <div className="more-input-row">
-              <input
-                ref={moreRef}
-                type="number"
-                min="0"
-                placeholder={getMorePlaceholder(metric)}
-                value={moreInput}
-                onInput={(e) => handleMoreInput((e.target as HTMLInputElement).value)}
-              />
-              <span className="suffix">{getMoreSuffix(metric)}</span>
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       <div className="tollgate-captive-portal-content">
         <div className="tollgate-captive-portal-content-container">
+          {!pageError && pricing && (
+            <>
+              <div className="size-choices">
+                {sizeOptions.map((opt, idx) => (
+                  <button
+                    key={opt.label}
+                    className={`size-btn${idx === selectedIdx && !showMore ? ' active' : ''}`}
+                    onClick={() => handleSelectSize(idx)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                <button
+                  className={`size-btn${showMore ? ' active' : ''}`}
+                  onClick={() => handleSelectSize(sizeOptions.length)}
+                >
+                  More
+                </button>
+              </div>
+
+              <div className={`more-input-wrap${showMore ? ' visible' : ''}`}>
+                <div className="more-input-row">
+                  <input
+                    ref={moreRef}
+                    type="number"
+                    min="0"
+                    placeholder={getMorePlaceholder(metric)}
+                    value={moreInput}
+                    onInput={(e) => handleMoreInput((e.target as HTMLInputElement).value)}
+                  />
+                  <span className="suffix">{getMoreSuffix(metric)}</span>
+                </div>
+              </div>
+            </>
+          )}
           <div className="tollgate-captive-portal-tabs" role="tablist">
             <button
               className="tollgate-captive-portal-tabs-tab tollgate-captive-portal-tabs-tab-lightning"
