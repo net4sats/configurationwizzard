@@ -347,6 +347,24 @@ export default function CaptivePortal() {
                   <p>You now have <strong>{grantedText}</strong> of internet access.</p>
                   <p className="small">You can now browse the internet.</p>
                 </div>
+                <a
+                  href="http://example.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '1rem',
+                    padding: '0.7rem 1.5rem',
+                    background: 'var(--color-cta, #f60)',
+                    color: '#fff',
+                    borderRadius: 'var(--border-radius, 12px)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  Continue browsing →
+                </a>
               </div>
             </div>
           </div>
