@@ -14,6 +14,7 @@ function build(app) {
 
 build('admin');
 build('portal');
+build('balance');
 
 // Ensure portal has index.html (uhttpd expects it, Vite outputs splash.html)
 const portalSplash = `${rootDir}/dist/portal/splash.html`;
@@ -23,4 +24,12 @@ if (existsSync(portalSplash) && !existsSync(portalIndex)) {
   console.log('Copied portal/splash.html → portal/index.html');
 }
 
-console.log('\nDone: dist/admin/ and dist/portal/');
+// Ensure balance has index.html (uhttpd expects it, Vite outputs balance.html)
+const balanceHtml = `${rootDir}/dist/balance/balance.html`;
+const balanceIndex = `${rootDir}/dist/balance/index.html`;
+if (existsSync(balanceHtml) && !existsSync(balanceIndex)) {
+  copyFileSync(balanceHtml, balanceIndex);
+  console.log('Copied balance/balance.html → balance/index.html');
+}
+
+console.log('\nDone: dist/admin/, dist/portal/, and dist/balance/');

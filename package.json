@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "VITE_APP=admin vite",
     "dev:portal": "VITE_APP=portal vite",
+    "dev:balance": "VITE_APP=balance vite",
     "dev:admin": "VITE_APP=admin vite",
     "build": "node scripts/build-app.mjs",
     "build:admin": "VITE_APP=admin vite build",
     "build:portal": "VITE_APP=portal vite build",
+    "build:balance": "VITE_APP=balance vite build",
     "preview": "vite preview",
     "demo": "VITE_MOCK=true VITE_APP=admin vite",
     "build:demo": "VITE_MOCK=true VITE_APP=admin vite build",
@@ -28,6 +30,7 @@
   },
   "homepage": "https://github.com/net4sats/configurationwizzard#readme",
   "dependencies": {
+    "@cashu/cashu-ts": "^4.5.1",
     "preact": "^10.29.1",
     "qrcode-generator": "^2.0.4",
     "typescript": "^6.0.3",

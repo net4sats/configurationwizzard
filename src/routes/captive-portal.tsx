@@ -10,6 +10,7 @@ import {
   computeSizeOptions,
 } from '../lib/payment-api';
 import { generateQRSVG } from '../lib/qr';
+import { validateCashuToken, type CashuValidationResult } from '../lib/cashu-validate';
 
 type Tab = 'lightning' | 'cashu';
 type PortalPhase = 'loading' | 'select' | 'success' | 'error';
@@ -78,6 +79,7 @@ export default function CaptivePortal() {
   const [cashuToken, setCashuToken] = useState('');
   const [cashuError, setCashuError] = useState('');
   const [cashuPaying, setCashuPaying] = useState(false);
+  const [cashuValidation, setCashuValidation] = useState<CashuValidationResult | null>(null);
 
   const [lnInvoice, setLnInvoice] = useState('');
   const [lnGenerating, setLnGenerating] = useState(false);
@@ -150,6 +152,14 @@ export default function CaptivePortal() {
     return () => clearTimeout(t);
   }, [cashuError]);
 
+  useEffect(() => {
+    if (phase !== 'success') return;
+    const t = setTimeout(() => {
+      window.location.href = `http://${window.location.hostname}/net4sats/balance.html`;
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [phase]);
+
   const handleSelectSize = useCallback((idx: number) => {
     if (idx === sizeOptions.length) {
       setShowMore(true);
@@ -167,6 +177,7 @@ export default function CaptivePortal() {
     setLnError('');
     setCashuError('');
     setCashuToken('');
+    setCashuValidation(null);
   }, [sizeOptions]);
 
   const handleMoreInput = useCallback((val: string) => {
@@ -189,8 +200,15 @@ export default function CaptivePortal() {
   const handleCashuInput = useCallback((val: string) => {
     setCashuToken(val);
     setCashuError('');
-    if (val.trim() && !val.trim().startsWith('cashu')) {
-      setCashuError('Cashu tokens should start with "cashu"');
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setCashuValidation(null);
+      return;
+    }
+    const result = validateCashuToken(val);
+    setCashuValidation(result);
+    if (!result.valid) {
+      setCashuError(result.error || 'Invalid Cashu token.');
     }
   }, []);
 
@@ -204,7 +222,7 @@ export default function CaptivePortal() {
   }, [handleCashuInput]);
 
   const handleCashuPay = useCallback(async () => {
-    if (!cashuToken.trim().startsWith('cashu') || !pricing) return;
+    if (!cashuValidation?.valid || !pricing) return;
     setCashuPaying(true);
     setCashuError('');
     try {
@@ -220,7 +238,7 @@ export default function CaptivePortal() {
     } finally {
       setCashuPaying(false);
     }
-  }, [cashuToken, pricing]);
+  }, [cashuToken, cashuValidation, pricing]);
 
   const handleGenerateInvoice = useCallback(async () => {
     if (!pricing) return;
@@ -278,7 +296,7 @@ export default function CaptivePortal() {
     }
   }, [pricing, selectedSats]);
 
-  const isCashuValid = cashuToken.trim().startsWith('cashu');
+  const isCashuValid = cashuValidation?.valid === true;
   const metric = pricing?.metric || 'milliseconds';
 
   const loadingHeader = (
@@ -345,12 +363,10 @@ export default function CaptivePortal() {
                 <div className="tollgate-captive-portal-access-granted-label">
                   <h2>Payment successful!</h2>
                   <p>You now have <strong>{grantedText}</strong> of internet access.</p>
-                  <p className="small">You can now browse the internet.</p>
+                  <p className="small">Redirecting to your dashboard…</p>
                 </div>
                 <a
-                  href="http://example.com"
-                  target="_blank"
-                  rel="noreferrer"
+                  href={`http://${window.location.hostname}/net4sats/balance.html`}
                   style={{
                     display: 'inline-block',
                     marginTop: '1rem',
@@ -363,7 +379,7 @@ export default function CaptivePortal() {
                     fontSize: '0.9rem',
                   }}
                 >
-                  Continue browsing →
+                  Go to dashboard →
                 </a>
               </div>
             </div>
@@ -573,7 +589,7 @@ export default function CaptivePortal() {
                   />
                   <div className="tollgate-captive-portal-method-input-actions">
                     {cashuToken && (
-                      <button className="cancel" onClick={() => { setCashuToken(''); setCashuError(''); }}>✕</button>
+                      <button className="cancel" onClick={() => { setCashuToken(''); setCashuError(''); setCashuValidation(null); }}>✕</button>
                     )}
                     {!cashuToken && (
                       <button className="ghost" onClick={handleCashuPaste}>Paste</button>
@@ -581,6 +597,40 @@ export default function CaptivePortal() {
                     <button className="ghost">QR</button>
                   </div>
                 </div>
+
+                {isCashuValid && cashuValidation?.amount != null && (
+                  <div
+                    className="cashu-success-msg"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      margin: '0.5rem 0',
+                      padding: '0.7rem 0.9rem',
+                      background: '#e8f9ed',
+                      border: '1px solid #32d74b',
+                      borderRadius: 'var(--border-radius, 12px)',
+                      color: '#1a7a36',
+                      fontSize: 'var(--font-size-small, 0.9rem)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      style={{ width: '1.1rem', height: '1.1rem', flexShrink: 0 }}
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>
+                      Valid Cashu token — {formatSats(cashuValidation.amount)}
+                    </span>
+                  </div>
+                )}
 
                 {pricing?.mintUrl && (
                   <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.35)', textAlign: 'center' }}>
