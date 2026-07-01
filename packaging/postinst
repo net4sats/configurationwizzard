@@ -1,6 +1,78 @@
 #!/bin/sh
 
+# Skip all runtime-only actions during build-time (SDK) installs: when
+# IPKG_INSTROOT points at the staging root, uci/opkg/init.d would operate
+# on the build host instead of a real router. (Standard OpenWrt guard.)
+[ -n "${IPKG_INSTROOT:-}" ] && exit 0
+
 echo "Running post-installation for configurationwizzard..."
+
+# ---------------------------------------------------------------------------
+# Register the tollgate custom package feed.
+#
+# configurationwizzard DEPENDS:=+tollgate-wrt, which is NOT in the official
+# OpenWrt feed. Registering releases.tollgate.me lets opkg/apk resolve it and
+# pull future tollgate upgrades. The .ipk is Architecture: all, so the per-arch
+# feed URL is built from the running router's detected architecture.
+#
+#   opkg (OpenWrt 24.x): "src/gz tollgate <url>"  -> fetches <url>/Packages.gz
+#   apk  (OpenWrt 25.x): "<url>"                  -> fetches <url>/APKINDEX.tar.gz
+#
+# Idempotent: re-running on an already-registered router yields one current
+# feed entry (a prior version's stale line is replaced, not duplicated).
+#
+# NOTE: tollgate packages are currently UNSIGNED. apk will report
+# "UNTRUSTED signature" until a pubkey is added to /etc/apk/keys/. Feed
+# registration still succeeds; operators install with `apk add
+# --allow-untrusted tollgate-wrt` until signing is in place.
+# ---------------------------------------------------------------------------
+FEED_BASE="https://releases.tollgate.me/alpha/v0.5.0-alpha3"
+
+# /etc/openwrt_release ships DISTRIB_ARCH on every OpenWrt release
+# (24.x opkg and 25.x apk alike).
+. /etc/openwrt_release 2>/dev/null
+TG_ARCH="${DISTRIB_ARCH:-}"
+if [ -z "$TG_ARCH" ]; then
+    # 25.x also exports OPENWRT_ARCH in /etc/os-release.
+    . /etc/os-release 2>/dev/null
+    TG_ARCH="${OPENWRT_ARCH:-}"
+fi
+
+if [ -z "$TG_ARCH" ]; then
+    echo "Could not detect package architecture; skipping tollgate feed registration."
+else
+    FEED_URL="$FEED_BASE/$TG_ARCH"
+
+    if command -v apk >/dev/null 2>&1; then
+        # --- OpenWrt 25.x (apk) ---
+        # We own tollgate.list entirely, so overwrite keeps it to one line.
+        mkdir -p /etc/apk/repositories.d
+        echo "$FEED_URL" > /etc/apk/repositories.d/tollgate.list
+        echo "Registered tollgate apk feed: $FEED_URL"
+        apk update 2>/dev/null \
+            || echo "  (apk update deferred - index unsigned until a key is published)"
+
+    elif command -v opkg >/dev/null 2>&1; then
+        # --- OpenWrt 24.x (opkg) ---
+        # Drop any prior tollgate src line (avoids stale entries on a version
+        # bump) then append the current one. Other feeds are preserved.
+        mkdir -p /etc/opkg
+        touch /etc/opkg/customfeeds.conf
+        {
+            grep -v 'src/gz tollgate ' /etc/opkg/customfeeds.conf 2>/dev/null
+            echo "src/gz tollgate $FEED_URL"
+        } > /etc/opkg/customfeeds.conf.new
+        mv /etc/opkg/customfeeds.conf.new /etc/opkg/customfeeds.conf
+        echo "Registered tollgate opkg feed: $FEED_URL"
+        opkg update 2>/dev/null \
+            || echo "  (opkg update deferred - check network / TLS bootstrap)"
+
+    else
+        echo "Neither apk nor opkg found; skipping tollgate feed registration."
+    fi
+fi
+
+# --- Existing service configuration (uhttpd / NoDogSplash / restarts) ---
 
 if ! uci -q get uhttpd.net4sats >/dev/null 2>&1; then
     echo "Adding uhttpd net4sats section for admin SPA on :80"
