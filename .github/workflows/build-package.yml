@@ -161,8 +161,8 @@ jobs:
       run:
         shell: bash
     env:
-      BLOSSOM_SERVERS: "https://blossom.tollgate.me https://blossom.primal.net https://blossom1.orangesync.tech https://blossom2.orangesync.tech"
-      BLOSSOM_MIN_SUCCESS: "2"
+      BLOSSOM_SERVERS: "https://blossom.psbt.me https://blossom.primal.net"
+      BLOSSOM_MIN_SUCCESS: "1"
       RELAYS: "wss://relay.damus.io wss://nos.lol wss://nostr.mom wss://relay.tollgate.me wss://relay1.orangesync.tech wss://relay2.orangesync.tech wss://ngit1.orangesync.tech wss://ngit2.orangesync.tech"
       PACKAGE_VERSION: ${{ needs.determine-versioning.outputs.package_version }}
       RELEASE_CHANNEL: ${{ needs.determine-versioning.outputs.release_channel }}
