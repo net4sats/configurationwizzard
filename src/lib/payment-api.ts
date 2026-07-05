@@ -12,6 +12,27 @@ export interface PricingInfo {
   unit: string;
   mintUrl: string;
   minSteps: number;
+  /**
+   * Whether the selected mint's Lightning backend was verified working.
+   * - New backend (PR #181): true only when a `["supports_ln", mintUrl, "true"]`
+   *   tag is present for this mint. Absent tag => LN down => hide/grey-out tab.
+   * - Old backend (no supports_ln tags at all): defaults to true so Lightning
+   *   stays available everywhere (graceful backward compatibility).
+   */
+  supportsLN: boolean;
+}
+
+/**
+ * Thrown when the gateway returns a kind:21023 notice event (e.g.
+ * "no reachable mints") during pricing fetch. The captive portal catches this
+ * to show a friendly "Setting up payment system, please wait..." message
+ * instead of crashing or rendering a broken/empty pricing card.
+ */
+export class GatewaySetupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GatewaySetupError';
+  }
 }
 
 export interface SessionEvent {
@@ -63,6 +84,13 @@ export async function fetchPricing(): Promise<PricingInfo> {
   const res = await fetch(getGatewayBase() + '/');
   if (!res.ok) throw new Error(`Pricing fetch failed: ${res.status}`);
   const event = await res.json();
+  // kind:21023 is a NIP-61 notice event — the gateway has no reachable mints
+  // (e.g. booted before WAN/DNS came up, or every mint is down). Show a
+  // friendly "setting up" message instead of a broken pricing card.
+  if (event.kind === 21023) {
+    const notice = parseKind21023(event);
+    throw new GatewaySetupError(notice.message || 'Setting up payment system, please wait...');
+  }
   return parseKind10021(event);
 }
 
@@ -125,6 +153,11 @@ function parseKind10021(event: any): PricingInfo {
   let mintUrl = '';
   let minSteps = 0;
 
+  // Track which mints advertised Lightning capability via supports_ln tags
+  // (PR #181 / TIP-02). Format: ["supports_ln", "<mint_url>", "true"].
+  const lnCapableMints = new Set<string>();
+  let sawAnySupportsLnTag = false;
+
   for (const tag of tags) {
     if (tag[0] === 'metric') {
       metric = tag[1] === 'bytes' ? 'bytes' : 'milliseconds';
@@ -135,10 +168,23 @@ function parseKind10021(event: any): PricingInfo {
       unit = tag[3] || 'sats';
       mintUrl = tag[4] || '';
       minSteps = parseInt(tag[5], 10) || 0;
+    } else if (tag[0] === 'supports_ln') {
+      sawAnySupportsLnTag = true;
+      // Only a "true" value for a known mint advertises LN capability.
+      if (tag[2] === 'true' && tag[1]) {
+        lnCapableMints.add(tag[1]);
+      }
     }
   }
 
-  return { metric, stepSize, pricePerStep, unit, mintUrl, minSteps };
+  // Backward compatibility: an old backend (v0.5.0-alpha3 and earlier) emits
+  // NO supports_ln tags at all. In that case we cannot tell which mints have a
+  // working LN backend, so we default to Lightning being available (preserves
+  // existing behaviour). A new backend that emits supports_ln tags is
+  // authoritative: Lightning is shown ONLY for mints it explicitly marks.
+  const supportsLN = sawAnySupportsLnTag ? lnCapableMints.has(mintUrl) : true;
+
+  return { metric, stepSize, pricePerStep, unit, mintUrl, minSteps, supportsLN };
 }
 
 function parseKind1022(event: any): SessionEvent {
