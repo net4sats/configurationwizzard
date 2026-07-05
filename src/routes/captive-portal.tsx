@@ -5,13 +5,14 @@ import {
   payCashu,
   createLnInvoice,
   pollLnInvoice,
+  GatewaySetupError,
   type PricingInfo,
   type PaymentResult,
   computeSizeOptions,
 } from '../lib/payment-api';
 
 type Tab = 'lightning' | 'cashu';
-type PortalPhase = 'loading' | 'select' | 'success' | 'error';
+type PortalPhase = 'loading' | 'select' | 'success' | 'error' | 'setup';
 
 interface SizeOption {
   label: string;
@@ -73,6 +74,7 @@ export default function CaptivePortal() {
   const [deviceMac, setDeviceMac] = useState('');
   const [grantedText, setGrantedText] = useState('');
   const [pageError, setPageError] = useState('');
+  const [setupMessage, setSetupMessage] = useState('Setting up payment system, please wait...');
 
   const [cashuToken, setCashuToken] = useState('');
   const [cashuError, setCashuError] = useState('');
@@ -108,15 +110,38 @@ export default function CaptivePortal() {
             setSelectedSats(opts[0].sats);
             setSelectedIdx(0);
           }
+          // If the selected mint does not support Lightning (new backend with
+          // PR #181 where supports_ln is authoritative), land the user on the
+          // Cashu tab and grey-out Lightning instead of letting them hit a
+          // guaranteed invoice failure.
+          if (!pr.value.supportsLN) {
+            setTab('cashu');
+          }
         } else {
+          const reason = pr.reason;
+          if (reason instanceof GatewaySetupError) {
+            // kind:21023 — gateway booted before WAN/mints came up, or every
+            // mint is down. Show a friendly setup message and stop retrying
+            // silently so the user understands the router is still starting.
+            setSetupMessage(reason.message || 'Setting up payment system, please wait...');
+            setTimeout(() => { if (!cancelled) setPhase('setup'); }, 400);
+            if (mac.status === 'fulfilled') setDeviceMac(mac.value);
+            return;
+          }
           setPageError('Could not load pricing from gateway');
         }
 
         if (mac.status === 'fulfilled') {
           setDeviceMac(mac.value);
         }
-      } catch {
-        if (!cancelled) setPageError('Failed to connect to gateway');
+      } catch (err: any) {
+        if (cancelled) return;
+        if (err instanceof GatewaySetupError) {
+          setSetupMessage(err.message || 'Setting up payment system, please wait...');
+          setTimeout(() => { if (!cancelled) setPhase('setup'); }, 400);
+          return;
+        }
+        setPageError('Failed to connect to gateway');
       }
       setTimeout(() => {
         if (!cancelled) setPhase('select');
@@ -336,6 +361,29 @@ export default function CaptivePortal() {
     );
   }
 
+  if (phase === 'setup') {
+    return (
+      <div className="tollgate-captive-portal">
+        {loadingHeader}
+        <div className="tollgate-captive-portal-content">
+          <div className="tollgate-captive-portal-content-container">
+            <div className="tollgate-captive-portal-tabs" role="tablist">
+              <button className="tollgate-captive-portal-tabs-tab tollgate-captive-portal-tabs-tab-lightning" data-active="true" role="tab">⚡ Lightning</button>
+              <button className="tollgate-captive-portal-tabs-tab tollgate-captive-portal-tabs-tab-cashu" data-active="false" role="tab">🥜 Cashu</button>
+            </div>
+            <div className="tollgate-captive-portal-view">
+              <div className="tollgate-captive-portal-loading">
+                <div className="cp-spinner big" />
+                <span>{setupMessage}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {footer}
+      </div>
+    );
+  }
+
   return (
     <div className="tollgate-captive-portal">
       <div className="tollgate-captive-portal-header">
@@ -404,8 +452,12 @@ export default function CaptivePortal() {
             <button
               className="tollgate-captive-portal-tabs-tab tollgate-captive-portal-tabs-tab-lightning"
               data-active={tab === 'lightning' ? 'true' : 'false'}
+              data-disabled={pricing && !pricing.supportsLN ? 'true' : 'false'}
               role="tab"
-              onClick={() => setTab('lightning')}
+              aria-disabled={pricing ? !pricing.supportsLN : false}
+              disabled={pricing ? !pricing.supportsLN : false}
+              onClick={() => { if (!pricing || pricing.supportsLN) setTab('lightning'); }}
+              title={pricing && !pricing.supportsLN ? 'Lightning is not available for this mint' : undefined}
             >
               ⚡ Lightning
             </button>
