@@ -29,12 +29,16 @@ echo "Running post-installation for configurationwizzard..."
 FEED_BASE="https://releases.tollgate.me/alpha/v0.5.0-alpha3"
 
 # /etc/openwrt_release ships DISTRIB_ARCH on every OpenWrt release
-# (24.x opkg and 25.x apk alike).
-. /etc/openwrt_release 2>/dev/null
+# (24.x opkg and 25.x apk alike). Guard with [ -f ] before sourcing: on
+# busybox ash / dash, sourcing a non-existent file is a hard, uncatchable
+# abort (exit 2) of the entire postinst -- 2>/dev/null only hides the
+# message and even || true cannot recover. bash tolerates it, but OpenWrt
+# runs busybox sh, so the guard is mandatory for real-world robustness.
+[ -f /etc/openwrt_release ] && . /etc/openwrt_release
 TG_ARCH="${DISTRIB_ARCH:-}"
 if [ -z "$TG_ARCH" ]; then
-    # 25.x also exports OPENWRT_ARCH in /etc/os-release.
-    . /etc/os-release 2>/dev/null
+    # 25.x also exports OPENWRT_ARCH in /etc/os-release (same guard).
+    [ -f /etc/os-release ] && . /etc/os-release
     TG_ARCH="${OPENWRT_ARCH:-}"
 fi
 
