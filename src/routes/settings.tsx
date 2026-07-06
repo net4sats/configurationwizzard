@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { ubusCall } from '../lib/ubus';
 import SchemaForm, { type FieldSchema } from '../components/schema-form';
+import IdentityPanel from '../components/identity-panel';
 
 type FieldGroup = {
   label: string;
@@ -272,6 +273,8 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      <IdentityPanel />
 
       <div className="card animate-in-delay-4">
         <div className="card-header">
