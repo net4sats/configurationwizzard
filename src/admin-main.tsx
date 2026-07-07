@@ -3,7 +3,7 @@ import { useState, useEffect } from 'preact/hooks';
 import './styles/variables.css';
 import './styles/admin.css';
 import { initRouter, useRoute, navigate } from './lib/router';
-import { checkSession, isLoggedIn, isMock } from './lib/ubus';
+import { checkSession, isLoggedIn, isMock, onSessionExpired, startSessionKeepalive } from './lib/ubus';
 import Layout from './components/layout';
 import LoginPage from './routes/login';
 
@@ -14,6 +14,11 @@ function AdminApp() {
 
   useEffect(() => {
     initRouter();
+    // Register session expiry handler — auto-redirect to login
+    onSessionExpired(() => {
+      setAuthed(false);
+      navigate('login');
+    });
     (async () => {
       if (isMock()) {
         setAuthed(true);
@@ -23,7 +28,11 @@ function AdminApp() {
       if (isLoggedIn()) {
         const valid = await checkSession();
         setAuthed(valid);
-        if (!valid) navigate('login');
+        if (valid) {
+          startSessionKeepalive();
+        } else {
+          navigate('login');
+        }
       } else {
         setAuthed(false);
         navigate('login');

@@ -17,6 +17,49 @@ if (saved) sessionId = saved;
 
 let rpcId = 0;
 
+// Session expiry callback — registered by admin-main.tsx to redirect to login
+let sessionExpiredCallback: (() => void) | null = null;
+
+export function onSessionExpired(cb: () => void) {
+  sessionExpiredCallback = cb;
+}
+
+// Keepalive timer — pings ubus every 4 min to prevent 5-min session timeout
+let keepaliveTimer: ReturnType<typeof setInterval> | null = null;
+
+export function startSessionKeepalive() {
+  if (MOCK) return;
+  if (keepaliveTimer) clearInterval(keepaliveTimer);
+  keepaliveTimer = setInterval(async () => {
+    if (sessionId === '00000000000000000000000000000000') return;
+    try {
+      await ubusCall('session', 'access', {
+        scope: 'ubus',
+        object: 'session',
+        function: 'login',
+      });
+    } catch {
+      // Session expired during keepalive — trigger redirect
+      if (sessionExpiredCallback) sessionExpiredCallback();
+    }
+  }, 240000); // 4 minutes (under uhttpd default 5-min timeout)
+}
+
+export function stopSessionKeepalive() {
+  if (keepaliveTimer) {
+    clearInterval(keepaliveTimer);
+    keepaliveTimer = null;
+  }
+}
+
+function handleSessionExpired() {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_USER);
+  sessionId = '00000000000000000000000000000000';
+  stopSessionKeepalive();
+  if (sessionExpiredCallback) sessionExpiredCallback();
+}
+
 export async function ubusCall(
   obj: string,
   method: string,
@@ -39,8 +82,7 @@ export async function ubusCall(
   const json = await res.json();
   if (json.error) {
     if (json.error.code === -32002) {
-      localStorage.removeItem(SESSION_KEY);
-      sessionId = '00000000000000000000000000000000';
+      handleSessionExpired();
       throw new Error('SESSION_EXPIRED');
     }
     throw new Error(`ubus error: ${json.error.message || 'unknown'}`);
@@ -48,8 +90,7 @@ export async function ubusCall(
   if (!json.result) throw new Error('No result from ubus');
   if (json.result[0] !== 0) {
     if (json.result[0] === 6) {
-      localStorage.removeItem(SESSION_KEY);
-      sessionId = '00000000000000000000000000000000';
+      handleSessionExpired();
       throw new Error('SESSION_EXPIRED');
     }
     throw new Error(
@@ -101,6 +142,7 @@ export async function login(
   sessionId = data.ubus_rpc_session;
   localStorage.setItem(SESSION_KEY, sessionId);
   localStorage.setItem(SESSION_USER, username);
+  startSessionKeepalive();
   return data;
 }
 
@@ -108,6 +150,7 @@ export function logout() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_USER);
   sessionId = '00000000000000000000000000000000';
+  stopSessionKeepalive();
 }
 
 export async function checkSession(): Promise<boolean> {
