@@ -49,7 +49,7 @@ configures uhttpd, and restarts nodogsplash.
 After deploy:
 - **Admin panel:** `http://ROUTER_IP/` or `http://ROUTER_IP/net4sats/`
 - **Captive portal:** `http://ROUTER_IP:2050/` (via nodogsplash redirect)
-- **LuCI (if installed):** `http://ROUTER_IP:8080/`
+- **LuCI (if installed):** `http://ROUTER_IP:8080/` — fallback admin; see [docs/LUCI-FALLBACK.md](docs/LUCI-FALLBACK.md)
 
 Login: `root` + the router's root password.
 
