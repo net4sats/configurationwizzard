@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, renameSync, existsSync } from 'node:fs';
+import { copyFileSync, renameSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const rootDir = process.cwd();
 
@@ -31,5 +31,15 @@ if (existsSync(balanceHtml) && !existsSync(balanceIndex)) {
   copyFileSync(balanceHtml, balanceIndex);
   console.log('Copied balance/balance.html → balance/index.html');
 }
+
+// Version-bust service worker CACHE_NAME at build time
+const stamp = Date.now().toString(36);
+for (const dir of ['admin', 'portal']) {
+  const path = `${rootDir}/dist/${dir}/sw.js`;
+  let content = readFileSync(path, 'utf8');
+  content = content.replace("'net4sats-v1'", `'net4sats-${stamp}'`);
+  writeFileSync(path, content);
+}
+console.log(`Service worker cache version: net4sats-${stamp}`);
 
 console.log('\nDone: dist/admin/, dist/portal/, and dist/balance/');
