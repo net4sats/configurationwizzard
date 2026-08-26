@@ -192,7 +192,7 @@ export default function CaptivePortal() {
   useEffect(() => {
     if (phase !== 'success') return;
     const t = setTimeout(() => {
-      window.location.href = `http://${window.location.hostname}:8090/net4sats/balance.html`;
+      window.location.href = `http://${window.location.hostname}:8090/balance.html`;
     }, 0);
     return () => clearTimeout(t);
   }, [phase]);
@@ -411,7 +411,7 @@ export default function CaptivePortal() {
                   <p className="small">Redirecting to your dashboard…</p>
                 </div>
                 <a
-                  href={`http://${window.location.hostname}:8090/net4sats/balance.html`}
+                  href={`http://${window.location.hostname}:8090/balance.html`}
                   style={{
                     display: 'inline-block',
                     marginTop: '1rem',
