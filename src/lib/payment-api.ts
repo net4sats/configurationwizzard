@@ -5,6 +5,16 @@ function getGatewayBase(): string {
   return `http://${host}:${GATEWAY_PORT}`;
 }
 
+/**
+ * Reads the `clientmac` query parameter from the current URL.
+ * Nodogsplash preauth redirects with ?clientmac=XX:XX:XX:XX:XX:XX
+ * Returns null if not present.
+ */
+export function getClientMacFromUrl(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('clientmac');
+}
+
 export interface PricingInfo {
   metric: 'milliseconds' | 'bytes';
   stepSize: number;
@@ -103,11 +113,17 @@ export async function fetchWhoami(): Promise<string> {
   return match[1];
 }
 
-export async function payCashu(token: string): Promise<PaymentResult> {
-  const res = await fetch(getGatewayBase() + '/', {
+export async function payCashu(token: string, mac?: string): Promise<PaymentResult> {
+  const headers: Record<string, string> = { 'Content-Type': 'text/plain' };
+  let body: string = token;
+  if (mac) {
+    // Pass mac as a custom header since the endpoint expects raw token body
+    headers['X-Client-Mac'] = mac;
+  }
+  const res = await fetch(getGatewayBase() + '/' + (mac ? `?mac=${encodeURIComponent(mac)}` : ''), {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: token,
+    headers,
+    body,
   });
   const event = await res.json();
 
@@ -125,17 +141,21 @@ export async function payCashu(token: string): Promise<PaymentResult> {
   return { ok: false, error: { code: 'unexpected-response', message: 'Unexpected response from payment server' } };
 }
 
-export async function createLnInvoice(amount: number, mintUrl: string): Promise<LnInvoiceResponse> {
+export async function createLnInvoice(amount: number, mintUrl: string, mac?: string): Promise<LnInvoiceResponse> {
+  const payload: Record<string, any> = { amount, mint_url: mintUrl };
+  if (mac) payload.mac = mac;
   const res = await fetch(getGatewayBase() + '/ln-invoice', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount, mint_url: mintUrl }),
+    body: JSON.stringify(payload),
   });
   return res.json();
 }
 
-export async function pollLnInvoice(quoteId: string): Promise<LnInvoiceResponse> {
-  const res = await fetch(getGatewayBase() + `/ln-invoice?quote=${encodeURIComponent(quoteId)}`);
+export async function pollLnInvoice(quoteId: string, mac?: string): Promise<LnInvoiceResponse> {
+  let url = getGatewayBase() + `/ln-invoice?quote=${encodeURIComponent(quoteId)}`;
+  if (mac) url += `&mac=${encodeURIComponent(mac)}`;
+  const res = await fetch(url);
   return res.json();
 }
 

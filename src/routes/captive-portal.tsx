@@ -6,6 +6,7 @@ import {
   createLnInvoice,
   pollLnInvoice,
   GatewaySetupError,
+  getClientMacFromUrl,
   type PricingInfo,
   type PaymentResult,
   computeSizeOptions,
@@ -97,10 +98,14 @@ export default function CaptivePortal() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Prefer clientmac from URL (nodogsplash preauth) over whoami
+      const urlMac = getClientMacFromUrl();
+      if (urlMac) setDeviceMac(urlMac);
+
       try {
         const [pr, mac] = await Promise.allSettled([
           fetchPricing(),
-          fetchWhoami(),
+          urlMac ? Promise.resolve(urlMac) : fetchWhoami(),
         ]);
 
         if (cancelled) return;
@@ -251,7 +256,7 @@ export default function CaptivePortal() {
     setCashuPaying(true);
     setCashuError('');
     try {
-      const result: PaymentResult = await payCashu(cashuToken.trim());
+      const result: PaymentResult = await payCashu(cashuToken.trim(), deviceMac || undefined);
       if (result.ok) {
         setGrantedText(formatAllotment(result.session.metric, result.session.allotment));
         setPhase('success');
@@ -263,7 +268,7 @@ export default function CaptivePortal() {
     } finally {
       setCashuPaying(false);
     }
-  }, [cashuToken, cashuValidation, pricing]);
+  }, [cashuToken, cashuValidation, pricing, deviceMac]);
 
   const handleGenerateInvoice = useCallback(async () => {
     if (!pricing) return;
@@ -273,7 +278,7 @@ export default function CaptivePortal() {
     setLnGenerated(false);
     setLnTestMint(false);
     try {
-      const res = await createLnInvoice(selectedSats, pricing.mintUrl);
+      const res = await createLnInvoice(selectedSats, pricing.mintUrl, deviceMac || undefined);
       if (res.status === 0 || res.error) {
         setLnError(res.error || 'Failed to create invoice');
         setLnGenerating(false);
@@ -300,7 +305,7 @@ export default function CaptivePortal() {
 
       pollRef.current = window.setInterval(async () => {
         try {
-          const poll = await pollLnInvoice(res.quote);
+          const poll = await pollLnInvoice(res.quote, deviceMac || undefined);
           if (poll.access_granted) {
             if (pollRef.current) clearInterval(pollRef.current);
             setLnPolling(false);
@@ -319,7 +324,7 @@ export default function CaptivePortal() {
       setLnError(err.message || 'Invoice creation failed');
       setLnGenerating(false);
     }
-  }, [pricing, selectedSats]);
+  }, [pricing, selectedSats, deviceMac]);
 
   const isCashuValid = cashuValidation?.valid === true;
   const metric = pricing?.metric || 'milliseconds';
