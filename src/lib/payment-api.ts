@@ -21,6 +21,7 @@ export interface PricingInfo {
   pricePerStep: number;
   unit: string;
   mintUrl: string;
+  mintUrls: string[];
   minSteps: number;
   /**
    * Whether the selected mint's Lightning backend was verified working.
@@ -171,6 +172,7 @@ function parseKind10021(event: any): PricingInfo {
   let pricePerStep = 1;
   let unit = 'sats';
   let mintUrl = '';
+  const mintUrls: string[] = [];
   let minSteps = 0;
 
   // Track which mints advertised Lightning capability via supports_ln tags
@@ -186,7 +188,11 @@ function parseKind10021(event: any): PricingInfo {
     } else if (tag[0] === 'price_per_step') {
       pricePerStep = parseInt(tag[2], 10) || 1;
       unit = tag[3] || 'sats';
-      mintUrl = tag[4] || '';
+      const url = tag[4] || '';
+      if (url) {
+        mintUrl = mintUrl || url; // first mint becomes default for backward compat
+        if (!mintUrls.includes(url)) mintUrls.push(url);
+      }
       minSteps = parseInt(tag[5], 10) || 0;
     } else if (tag[0] === 'supports_ln') {
       sawAnySupportsLnTag = true;
@@ -204,7 +210,7 @@ function parseKind10021(event: any): PricingInfo {
   // authoritative: Lightning is shown ONLY for mints it explicitly marks.
   const supportsLN = sawAnySupportsLnTag ? lnCapableMints.has(mintUrl) : true;
 
-  return { metric, stepSize, pricePerStep, unit, mintUrl, minSteps, supportsLN };
+  return { metric, stepSize, pricePerStep, unit, mintUrl, mintUrls, minSteps, supportsLN };
 }
 
 function parseKind1022(event: any): SessionEvent {

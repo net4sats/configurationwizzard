@@ -91,6 +91,7 @@ export default function CaptivePortal() {
   const [lnTestMint, setLnTestMint] = useState(false);
   const [lnQuoteId, setLnQuoteId] = useState('');
   const [lnError, setLnError] = useState('');
+  const [selectedMintUrl, setSelectedMintUrl] = useState('');
 
   const moreRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<number | null>(null);
@@ -117,6 +118,12 @@ export default function CaptivePortal() {
           if (opts.length > 0) {
             setSelectedSats(opts[0].sats);
             setSelectedIdx(0);
+          }
+          // Default to the first mint URL from pricing
+          if (pr.value.mintUrls.length > 0) {
+            setSelectedMintUrl(pr.value.mintUrls[0]);
+          } else if (pr.value.mintUrl) {
+            setSelectedMintUrl(pr.value.mintUrl);
           }
           // If the selected mint does not support Lightning (new backend with
           // PR #181 where supports_ln is authoritative), land the user on the
@@ -278,7 +285,7 @@ export default function CaptivePortal() {
     setLnGenerated(false);
     setLnTestMint(false);
     try {
-      const res = await createLnInvoice(selectedSats, pricing.mintUrl, deviceMac || undefined);
+      const res = await createLnInvoice(selectedSats, selectedMintUrl || pricing.mintUrl, deviceMac || undefined);
       if (res.status === 0 || res.error) {
         setLnError(res.error || 'Failed to create invoice');
         setLnGenerating(false);
@@ -324,7 +331,7 @@ export default function CaptivePortal() {
       setLnError(err.message || 'Invoice creation failed');
       setLnGenerating(false);
     }
-  }, [pricing, selectedSats, deviceMac]);
+  }, [pricing, selectedSats, selectedMintUrl, deviceMac]);
 
   const isCashuValid = cashuValidation?.valid === true;
   const metric = pricing?.metric || 'milliseconds';
@@ -697,10 +704,39 @@ export default function CaptivePortal() {
                   </div>
                 )}
 
-                {pricing?.mintUrl && (
-                  <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.35)', textAlign: 'center' }}>
-                    Accepted mint: {pricing.mintUrl}
-                  </p>
+                {pricing?.mintUrls && pricing.mintUrls.length > 0 && (
+                  <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                    <p style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.35)', marginBottom: '0.3rem' }}>
+                      Accepted mint:
+                    </p>
+                    <select
+                      value={selectedMintUrl}
+                      onChange={(e) => {
+                        setSelectedMintUrl(e.target.value);
+                        setLnInvoice('');
+                        setLnGenerated(false);
+                        setLnGenerating(false);
+                        setLnTestMint(false);
+                        setLnError('');
+                      }}
+                      style={{
+                        fontSize: 'var(--font-size-small, 0.85rem)',
+                        padding: '0.3rem 0.5rem',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(0,0,0,0.15)',
+                        background: '#fff',
+                        color: '#0a0a0a',
+                        cursor: 'pointer',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      {pricing.mintUrls.map((url) => {
+                        let label = url;
+                        try { label = new URL(url).hostname; } catch {}
+                        return <option key={url} value={url}>{label}</option>;
+                      })}
+                    </select>
+                  </div>
                 )}
 
                 <div className="tollgate-captive-portal-method-submit" style={{ marginTop: '1.5rem' }}>
