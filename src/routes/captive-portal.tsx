@@ -29,6 +29,9 @@ function formatSats(v: number): string {
 function formatAllotment(metric: string, allotment: number): string {
   if (metric === 'milliseconds') {
     const mins = Math.round(allotment / 60000);
+    if (mins < 1) {
+      return `${Math.max(1, Math.round(allotment / 1000))} sec`;
+    }
     if (mins >= 60) {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
@@ -37,6 +40,9 @@ function formatAllotment(metric: string, allotment: number): string {
     return `${mins} min`;
   }
   const mb = allotment / 1048576;
+  if (mb < 1) {
+    return `${Math.max(1, Math.round(allotment / 1024))} KB`;
+  }
   if (mb >= 1024) {
     const gb = mb / 1024;
     return gb >= 10 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
@@ -637,6 +643,32 @@ export default function CaptivePortal() {
                     to access the internet.
                   </h2>
                 </div>
+
+                {pricing && (
+                  <div
+                    style={{
+                      margin: '0.25rem 0 0.75rem',
+                      padding: '0.6rem 0.9rem',
+                      background: 'rgba(0,0,0,0.03)',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: 'var(--border-radius, 12px)',
+                      fontSize: 'var(--font-size-small, 0.9rem)',
+                      textAlign: 'center',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: 'rgba(0,0,0,0.65)' }}>
+                      Rate: {pricing.pricePerStep} {pricing.pricePerStep === 1 ? 'sat' : 'sats'} per{' '}
+                      {formatAllotment(pricing.metric, pricing.stepSize)}
+                    </div>
+                    {pricing.minSteps > 1 && (
+                      <div style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.45)' }}>
+                        Minimum: {pricing.minSteps * pricing.pricePerStep} sats (
+                        {formatAllotment(pricing.metric, pricing.minSteps * pricing.stepSize)})
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {cashuError && (
                   <div className="error-msg">
