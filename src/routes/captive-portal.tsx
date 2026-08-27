@@ -477,7 +477,7 @@ export default function CaptivePortal() {
         </div>
       )}
 
-      {!pageError && pricing && (
+      {!pageError && pricing && tab === 'lightning' && (
         <div style={{ textAlign: 'center', padding: '0 1rem 0.5rem' }}>
           <p style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>How much Internet would you like to buy?</p>
           <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
@@ -488,7 +488,7 @@ export default function CaptivePortal() {
 
       <div className="tollgate-captive-portal-content">
         <div className="tollgate-captive-portal-content-container">
-          {!pageError && pricing && (
+          {!pageError && pricing && tab === 'lightning' && (
             <>
               <div className="size-choices">
                 {sizeOptions.map((opt, idx) => (
@@ -638,12 +638,6 @@ export default function CaptivePortal() {
                   </h2>
                 </div>
 
-                <div className="tollgate-captive-portal-method-input" style={{ textAlign: 'center', padding: '1.2rem', border: 'none' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0a0a0a' }}>
-                    {formatSats(selectedSats)}
-                  </div>
-                </div>
-
                 {cashuError && (
                   <div className="error-msg">
                     <div className="dot" />
@@ -700,6 +694,13 @@ export default function CaptivePortal() {
                     </svg>
                     <span>
                       Valid Cashu token — {formatSats(cashuValidation.amount)}
+                      {pricing && (() => {
+                        const steps = Math.floor(cashuValidation.amount / pricing.pricePerStep);
+                        const allotment = steps * pricing.stepSize;
+                        return allotment > 0
+                          ? ` — buys you ${formatAllotment(pricing.metric, allotment)}`
+                          : '';
+                      })()}
                     </span>
                   </div>
                 )}
