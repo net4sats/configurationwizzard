@@ -29,6 +29,9 @@ function formatSats(v: number): string {
 function formatAllotment(metric: string, allotment: number): string {
   if (metric === 'milliseconds') {
     const mins = Math.round(allotment / 60000);
+    if (mins < 1) {
+      return `${Math.max(1, Math.round(allotment / 1000))} sec`;
+    }
     if (mins >= 60) {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
@@ -37,6 +40,9 @@ function formatAllotment(metric: string, allotment: number): string {
     return `${mins} min`;
   }
   const mb = allotment / 1048576;
+  if (mb < 1) {
+    return `${Math.max(1, Math.round(allotment / 1024))} KB`;
+  }
   if (mb >= 1024) {
     const gb = mb / 1024;
     return gb >= 10 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
@@ -477,7 +483,7 @@ export default function CaptivePortal() {
         </div>
       )}
 
-      {!pageError && pricing && (
+      {!pageError && pricing && tab === 'lightning' && (
         <div style={{ textAlign: 'center', padding: '0 1rem 0.5rem' }}>
           <p style={{ fontSize: '1.2rem', color: '#fff', fontWeight: 700 }}>How much Internet would you like to buy?</p>
           <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
@@ -488,7 +494,7 @@ export default function CaptivePortal() {
 
       <div className="tollgate-captive-portal-content">
         <div className="tollgate-captive-portal-content-container">
-          {!pageError && pricing && (
+          {!pageError && pricing && tab === 'lightning' && (
             <>
               <div className="size-choices">
                 {sizeOptions.map((opt, idx) => (
@@ -638,11 +644,31 @@ export default function CaptivePortal() {
                   </h2>
                 </div>
 
-                <div className="tollgate-captive-portal-method-input" style={{ textAlign: 'center', padding: '1.2rem', border: 'none' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0a0a0a' }}>
-                    {formatSats(selectedSats)}
+                {pricing && (
+                  <div
+                    style={{
+                      margin: '0.25rem 0 0.75rem',
+                      padding: '0.6rem 0.9rem',
+                      background: 'rgba(0,0,0,0.03)',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: 'var(--border-radius, 12px)',
+                      fontSize: 'var(--font-size-small, 0.9rem)',
+                      textAlign: 'center',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: 'rgba(0,0,0,0.65)' }}>
+                      Rate: {pricing.pricePerStep} {pricing.pricePerStep === 1 ? 'sat' : 'sats'} per{' '}
+                      {formatAllotment(pricing.metric, pricing.stepSize)}
+                    </div>
+                    {pricing.minSteps > 1 && (
+                      <div style={{ fontSize: 'var(--font-size-xsmall)', color: 'rgba(0,0,0,0.45)' }}>
+                        Minimum: {pricing.minSteps * pricing.pricePerStep} sats (
+                        {formatAllotment(pricing.metric, pricing.minSteps * pricing.stepSize)})
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 {cashuError && (
                   <div className="error-msg">
@@ -700,6 +726,13 @@ export default function CaptivePortal() {
                     </svg>
                     <span>
                       Valid Cashu token — {formatSats(cashuValidation.amount)}
+                      {pricing && (() => {
+                        const steps = Math.floor(cashuValidation.amount / pricing.pricePerStep);
+                        const allotment = steps * pricing.stepSize;
+                        return allotment > 0
+                          ? ` — buys you ${formatAllotment(pricing.metric, allotment)}`
+                          : '';
+                      })()}
                     </span>
                   </div>
                 )}
